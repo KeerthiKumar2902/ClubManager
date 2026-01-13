@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const authRoutes = require("./routes/authRoutes");
 const clubRoutes = require("./routes/clubRoutes");
+const eventRoutes = require("./routes/eventRoutes");
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +18,7 @@ app.use(express.json()); // Parse incoming JSON data
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/clubs", clubRoutes);
+app.use("/api/events", eventRoutes);
 
 app.get("/", (req, res) => {
   res.send("🚀 Server is running! Database is connected.");
