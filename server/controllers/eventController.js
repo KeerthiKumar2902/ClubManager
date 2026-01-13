@@ -77,3 +77,39 @@ exports.getMyClubEvents = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch club events" });
   }
 };
+
+// 4. Register User for an Event
+exports.registerForEvent = async (req, res) => {
+  try {
+    const userId = req.user.id;      // From Token
+    const eventId = req.params.id;   // From URL (e.g., /api/events/123/register)
+
+    // 1. Check if already registered
+    const existingRegistration = await prisma.registration.findUnique({
+      where: {
+        studentId_eventId: {
+          studentId: userId,
+          eventId: eventId
+        }
+      }
+    });
+
+    if (existingRegistration) {
+      return res.status(400).json({ error: "You are already registered for this event." });
+    }
+
+    // 2. Create Registration
+    const registration = await prisma.registration.create({
+      data: {
+        studentId: userId,
+        eventId: eventId
+      }
+    });
+
+    res.status(201).json({ message: "Successfully registered!", registration });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Registration failed." });
+  }
+};

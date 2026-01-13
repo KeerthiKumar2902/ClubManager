@@ -22,8 +22,9 @@ model User {
   password  String
   role      Role     @default(STUDENT)
   
-  // Relation: A user might manage a club (Optional)
-  club      Club?
+  // Relations
+  club          Club?
+  registrations Registration[] // <--- User has many registrations
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -33,13 +34,9 @@ model Club {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?
-  
-  // Relation: Each Club must have an Admin
   adminId     String   @unique
   admin       User     @relation(fields: [adminId], references: [id])
-
   events      Event[]
-  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -51,10 +48,27 @@ model Event {
   date        DateTime
   location    String
   
-  // Relation: Event belongs to a Club
   clubId      String
   club        Club     @relation(fields: [clubId], references: [id])
   
+  registrations Registration[] // <--- Event has many registrations
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// THE NEW JUNCTION TABLE
+model Registration {
+  id        String   @id @default(uuid())
+  
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id])
+  
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  
+  registeredAt DateTime @default(now())
+
+  // Ensure a student can't register for the same event twice
+  @@unique([studentId, eventId]) 
 }
