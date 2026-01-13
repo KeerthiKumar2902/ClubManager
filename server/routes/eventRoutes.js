@@ -15,4 +15,10 @@ router.get("/my-events", authMiddleware, eventController.getMyClubEvents);
 // Protected: Student Register
 router.post("/:id/register", authMiddleware, eventController.registerForEvent);
 
+// Protected: Get My Registrations
+router.get("/my-registrations", authMiddleware, eventController.getMyRegistrations);
+
+// Protected Club Admin: Get Attendees
+router.get("/:eventId/attendees", authMiddleware, eventController.getEventAttendees);
+
 module.exports = router;

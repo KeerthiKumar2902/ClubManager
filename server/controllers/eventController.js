@@ -113,3 +113,64 @@ exports.registerForEvent = async (req, res) => {
     res.status(500).json({ error: "Registration failed." });
   }
 };
+
+// 5. Get My Registrations (For Students)
+exports.getMyRegistrations = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const registrations = await prisma.registration.findMany({
+      where: { studentId: userId },
+      include: {
+        event: {
+          include: { club: true } // Get Event details AND Club name
+        }
+      },
+      orderBy: { registeredAt: 'desc' }
+    });
+
+    res.json(registrations);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch registrations" });
+  }
+};
+
+// 6. Get Attendees for a specific Event (Club Admin only)
+exports.getEventAttendees = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user.id;
+
+    // Security Check: Does this event belong to the admin's club?
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: { club: true }
+    });
+
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    // In a real app, we would check if event.club.adminId === userId
+    // For now, we assume if you are a CLUB_ADMIN, you can view (or we trust the frontend)
+    // But let's be safe:
+    if (event.club.adminId !== userId) {
+      return res.status(403).json({ error: "You do not own this event" });
+    }
+
+    // Fetch Registrations with Student Details
+    const attendees = await prisma.registration.findMany({
+      where: { eventId },
+      include: {
+        student: {
+          select: { id: true, name: true, email: true } // Only get safe data
+        }
+      }
+    });
+
+    res.json(attendees);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch attendees" });
+  }
+};

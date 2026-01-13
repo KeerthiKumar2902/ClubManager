@@ -66,3 +66,22 @@ exports.createClub = async (req, res) => {
     res.status(500).json({ error: "Failed to create club." });
   }
 };
+
+// Get All Clubs (For Super Admin or Public Directory)
+exports.getAllClubs = async (req, res) => {
+  try {
+    const clubs = await prisma.club.findMany({
+      include: {
+        admin: {
+          select: { name: true, email: true } // Show us who runs the club
+        },
+        _count: {
+          select: { events: true } // Count how many events they have
+        }
+      }
+    });
+    res.json(clubs);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch clubs" });
+  }
+};

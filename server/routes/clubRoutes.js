@@ -7,4 +7,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 // (Ideally only SUPER_ADMIN, but we start with basic auth)
 router.post("/", authMiddleware, clubController.createClub);
 
+// Get All Clubs (Public or Admin)
+router.get("/", clubController.getAllClubs);
+
 module.exports = router;
