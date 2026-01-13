@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const authRoutes = require("./routes/authRoutes");
 
 // Load environment variables
 dotenv.config();
@@ -12,9 +13,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors()); // Allow Frontend to talk to Backend
 app.use(express.json()); // Parse incoming JSON data
 
-// Basic Route (Health Check)
+// Routes
+app.use("/api/auth", authRoutes);
+
 app.get("/", (req, res) => {
-  res.send("🚀 Server is running! Database is connected (theoretically).");
+  res.send("🚀 Server is running! Database is connected.");
 });
 
 // Start Server
