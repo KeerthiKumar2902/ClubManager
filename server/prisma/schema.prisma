@@ -1,0 +1,27 @@
+// server/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum for Roles (RBAC)
+enum Role {
+  SUPER_ADMIN
+  CLUB_ADMIN
+  STUDENT
+}
+
+model User {
+  id        String   @id @default(uuid()) // Unique ID
+  name      String
+  email     String   @unique
+  password  String   // Hashed password
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
