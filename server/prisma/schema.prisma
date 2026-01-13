@@ -47,6 +47,7 @@ model Event {
   description String?
   date        DateTime
   location    String
+  capacity    Int      @default(50)
   
   clubId      String
   club        Club     @relation(fields: [clubId], references: [id])
@@ -68,7 +69,7 @@ model Registration {
   event     Event    @relation(fields: [eventId], references: [id])
   
   registeredAt DateTime @default(now())
-  
+
   attended  Boolean  @default(false)
 
   // Ensure a student can't register for the same event twice

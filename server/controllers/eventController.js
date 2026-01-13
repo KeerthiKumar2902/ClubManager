@@ -4,32 +4,29 @@ const prisma = new PrismaClient();
 // 1. Create Event (Only Club Admins)
 exports.createEvent = async (req, res) => {
   try {
-    const { title, description, date, location } = req.body;
-    const userId = req.user.id; // Comes from authMiddleware
+    // 1. Get capacity from body (default to 50 if missing)
+    const { title, description, date, location, capacity } = req.body; 
+    const userId = req.user.id;
 
-    // Find which club this user manages
     const club = await prisma.club.findUnique({
       where: { adminId: userId },
     });
 
-    if (!club) {
-      return res.status(403).json({ error: "You are not an admin of any club." });
-    }
+    if (!club) return res.status(403).json({ error: "Not authorized" });
 
-    // Create the event linked to that club
     const event = await prisma.event.create({
       data: {
         title,
         description,
-        date: new Date(date), // Convert string to Date object
+        date: new Date(date),
         location,
+        capacity: parseInt(capacity) || 50, // <--- Add this
         clubId: club.id,
       },
     });
 
     res.status(201).json(event);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Failed to create event" });
   }
 };
@@ -81,35 +78,46 @@ exports.getMyClubEvents = async (req, res) => {
 // 4. Register User for an Event
 exports.registerForEvent = async (req, res) => {
   try {
-    const userId = req.user.id;      // From Token
-    const eventId = req.params.id;   // From URL (e.g., /api/events/123/register)
+    const userId = req.user.id;
+    const eventId = req.params.id;
 
-    // 1. Check if already registered
-    const existingRegistration = await prisma.registration.findUnique({
-      where: {
-        studentId_eventId: {
-          studentId: userId,
-          eventId: eventId
-        }
+    // 1. Fetch Event + Count current registrations
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: { 
+        _count: { 
+          select: { registrations: true } 
+        } 
       }
     });
 
-    if (existingRegistration) {
-      return res.status(400).json({ error: "You are already registered for this event." });
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    // 2. CHECK: Time Travel
+    if (new Date(event.date) < new Date()) {
+      return res.status(400).json({ error: "This event has already ended." });
     }
 
-    // 2. Create Registration
-    const registration = await prisma.registration.create({
-      data: {
-        studentId: userId,
-        eventId: eventId
-      }
+    // 3. CHECK: Capacity Limit (NEW CODE)
+    if (event._count.registrations >= event.capacity) {
+      return res.status(400).json({ error: "Housefull! No seats available." });
+    }
+
+    // 4. Check if already registered
+    const existing = await prisma.registration.findUnique({
+      where: { studentId_eventId: { studentId: userId, eventId: eventId } }
     });
 
-    res.status(201).json({ message: "Successfully registered!", registration });
+    if (existing) return res.status(400).json({ error: "You are already registered." });
+
+    // 5. Create Registration
+    const registration = await prisma.registration.create({
+      data: { studentId: userId, eventId: eventId }
+    });
+
+    res.status(201).json({ message: "Registered!", registration });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Registration failed." });
   }
 };
