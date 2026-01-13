@@ -30,4 +30,7 @@ router.delete("/:eventId/cancel", authMiddleware, eventController.cancelRegistra
 // Club Admin: Delete Event
 router.delete("/:id", authMiddleware, eventController.deleteEvent);
 
+// Club Admin: Update Event
+router.put("/:id", authMiddleware, eventController.updateEvent);
+
 module.exports = router;

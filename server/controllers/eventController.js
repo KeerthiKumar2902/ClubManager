@@ -287,3 +287,42 @@ exports.deleteEvent = async (req, res) => {
     res.status(500).json({ error: "Failed to delete event" });
   }
 };
+
+// 10. Update Event (Club Admin Only)
+exports.updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, date, location, capacity } = req.body;
+    const userId = req.user.id;
+
+    // 1. Check Ownership
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: { club: true }
+    });
+
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    if (event.club.adminId !== userId) {
+      return res.status(403).json({ error: "Not authorized to update this event" });
+    }
+
+    // 2. Update Event
+    const updatedEvent = await prisma.event.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        date: new Date(date),
+        location,
+        capacity: parseInt(capacity)
+      }
+    });
+
+    res.json(updatedEvent);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to update event" });
+  }
+};

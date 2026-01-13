@@ -7,6 +7,7 @@ import useAuthStore from '../store/authStore';
 import EventCard from '../components/EventCard';
 import CreateEventForm from '../components/CreateEventForm';
 import CreateClubForm from '../components/CreateClubForm';
+import EditEventModal from '../components/EditEventModal'; // Imported but wasn't used before
 
 const Dashboard = () => {
   const { user, token, logout } = useAuthStore();
@@ -16,6 +17,9 @@ const Dashboard = () => {
   const [managedEvents, setManagedEvents] = useState([]); // Events I created (Admin)
   const [myTickets, setMyTickets] = useState([]);         // Events I joined (Student)
   const [clubsList, setClubsList] = useState([]);         // All Clubs (Super Admin)
+  
+  // State for Editing
+  const [editingEvent, setEditingEvent] = useState(null);
   
   const [message, setMessage] = useState('');
 
@@ -78,6 +82,20 @@ const Dashboard = () => {
     } catch (err) { alert("Failed to cancel."); }
   };
 
+  // Handler to open modal
+  const handleEditClick = (event) => {
+    setEditingEvent(event);
+  };
+
+  // Handler to update the list after saving
+  const handleUpdateEvent = (updatedEvent) => {
+    setManagedEvents(managedEvents.map(ev => 
+      ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev
+    ));
+    setMessage("Event updated successfully!");
+    setTimeout(() => setMessage(''), 3000);
+  };
+
   if (!user) return null;
 
   return (
@@ -92,7 +110,17 @@ const Dashboard = () => {
         <button onClick={() => { logout(); navigate('/login'); }} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
       </div>
 
-      {message && <div className="fixed bottom-5 right-5 bg-blue-600 text-white px-6 py-3 rounded shadow-lg animate-bounce">{message}</div>}
+      {message && <div className="fixed bottom-5 right-5 bg-blue-600 text-white px-6 py-3 rounded shadow-lg animate-bounce z-50">{message}</div>}
+
+      {/* --- EDIT MODAL (Rendered conditionally) --- */}
+      {editingEvent && (
+        <EditEventModal 
+          event={editingEvent} 
+          token={token} 
+          onClose={() => setEditingEvent(null)} 
+          onUpdate={handleUpdateEvent} 
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -134,7 +162,13 @@ const Dashboard = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Events You Manage</h2>
               {managedEvents.length === 0 ? <p className="text-gray-500">No events created yet.</p> : 
                 managedEvents.map(event => (
-                  <EventCard key={event.id} event={event} token={token} onDelete={handleDeleteEvent} />
+                  <EventCard 
+                    key={event.id} 
+                    event={event} 
+                    token={token} 
+                    onDelete={handleDeleteEvent} 
+                    onEdit={handleEditClick}  // <--- Passed the Edit Handler here
+                  />
                 ))
               }
             </div>

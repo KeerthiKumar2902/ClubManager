@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const EventCard = ({ event, token, onDelete }) => {
+const EventCard = ({ event, token, onDelete, onEdit }) => {
   const [attendees, setAttendees] = useState([]);
   const [showAttendees, setShowAttendees] = useState(false);
 
@@ -44,6 +44,13 @@ const EventCard = ({ event, token, onDelete }) => {
         </div>
         
         <div className="flex space-x-2">
+          {/* EDIT BUTTON */}
+          <button 
+            onClick={() => onEdit(event)}
+            className="text-blue-600 hover:text-blue-800 font-bold text-sm border border-blue-200 px-3 py-1 rounded hover:bg-blue-50 transition"
+          >
+            Edit
+          </button>
           <button 
             onClick={() => onDelete(event.id)}
             className="text-red-500 hover:text-red-700 font-bold text-sm border border-red-200 px-3 py-1 rounded hover:bg-red-50 transition"
