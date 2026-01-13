@@ -31,14 +31,19 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-// 2. Get All Events (Public)
+// 2. Get All Events (Public) - UPDATED
 exports.getAllEvents = async (req, res) => {
   try {
     const events = await prisma.event.findMany({
       include: {
         club: {
-          select: { name: true }, // Include the club name in the result
+          select: { name: true },
         },
+        // --- ADD THIS BLOCK ---
+        _count: {
+          select: { registrations: true }
+        }
+        // ----------------------
       },
       orderBy: { date: 'asc' }
     });
@@ -53,7 +58,6 @@ exports.getMyClubEvents = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 1. Find the club this user manages
     const club = await prisma.club.findUnique({
       where: { adminId: userId },
     });
@@ -62,9 +66,14 @@ exports.getMyClubEvents = async (req, res) => {
       return res.status(404).json({ error: "You do not manage a club." });
     }
 
-    // 2. Fetch events for this club
+    // UPDATE: Include the count of registrations
     const events = await prisma.event.findMany({
       where: { clubId: club.id },
+      include: {
+        _count: {
+          select: { registrations: true } // <--- Counts the attendees
+        }
+      },
       orderBy: { date: 'desc' }
     });
 
