@@ -9,7 +9,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enum for Roles (RBAC)
 enum Role {
   SUPER_ADMIN
   CLUB_ADMIN
@@ -17,11 +16,28 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid()) // Unique ID
+  id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  password  String   // Hashed password
+  password  String
   role      Role     @default(STUDENT)
+  
+  // Relation: A user might manage a club (Optional)
+  club      Club?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Club {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  
+  // Relation: Each Club must have an Admin
+  adminId     String   @unique
+  admin       User     @relation(fields: [adminId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
