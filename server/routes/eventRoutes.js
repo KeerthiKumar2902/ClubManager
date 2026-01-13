@@ -24,4 +24,7 @@ router.get("/:eventId/attendees", authMiddleware, eventController.getEventAttend
 // Protected Club Admin: Mark Attendance
 router.put("/:eventId/attendance", authMiddleware, eventController.markAttendance);
 
+// Student: Cancel Registration
+router.delete("/:eventId/cancel", authMiddleware, eventController.cancelRegistration);
+
 module.exports = router;

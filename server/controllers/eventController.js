@@ -210,3 +210,31 @@ exports.markAttendance = async (req, res) => {
     res.status(500).json({ error: "Failed to update attendance" });
   }
 };
+
+// 8. Cancel Registration (Student Only)
+exports.cancelRegistration = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { eventId } = req.params;
+
+    // Delete the specific registration row
+    const deleted = await prisma.registration.delete({
+      where: {
+        studentId_eventId: {
+          studentId: userId,
+          eventId: eventId
+        }
+      }
+    });
+
+    res.json({ message: "Registration cancelled", deleted });
+
+  } catch (error) {
+    console.error(error);
+    // If record not found (P2025 is Prisma error code for 'Record not found')
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: "Registration not found" });
+    }
+    res.status(500).json({ error: "Failed to cancel registration" });
+  }
+};

@@ -156,6 +156,25 @@ const Dashboard = () => {
     } catch (err) { setMessage(err.response?.data?.error || 'Error creating club.'); }
   };
 
+  // Add this inside the Dashboard component
+  const handleCancel = async (eventId) => {
+    if (!window.confirm("Are you sure you want to cancel this registration?")) return;
+
+    try {
+      await axios.delete(`http://localhost:5000/api/events/${eventId}/cancel`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Update UI immediately (remove the item from list)
+      // Note: Data structure varies. For Students, 'dataList' contains Registration objects { event: {...} }
+      setDataList(dataList.filter(item => item.event.id !== eventId));
+      setMessage("Registration Cancelled.");
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      alert("Failed to cancel.");
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -257,7 +276,6 @@ const Dashboard = () => {
                   <h3 className="text-xl font-bold">{event.title}</h3>
                   <p className="text-sm text-gray-500">{new Date(event.date).toLocaleString()} @ {event.location}</p>
                   
-                  {/* Show Host Club Name if available */}
                   {event.club && (
                     <p className="text-xs text-blue-600 font-bold mt-2">
                       Hosted by: {event.club.name}
@@ -265,10 +283,19 @@ const Dashboard = () => {
                   )}
                 </div>
                 
-                {/* Attending Badge */}
-                <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
-                  Attending
-                </span>
+                <div className="flex flex-col items-end space-y-2">
+                  <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full border border-green-200">
+                    Attending
+                  </span>
+                  
+                  {/* Cancel Button */}
+                  <button 
+                    onClick={() => handleCancel(event.id)}
+                    className="text-xs text-red-500 hover:text-red-700 underline font-semibold"
+                  >
+                    Cancel Ticket
+                  </button>
+                </div>
               </div>
             );
           })}
