@@ -27,4 +27,7 @@ router.put("/:eventId/attendance", authMiddleware, eventController.markAttendanc
 // Student: Cancel Registration
 router.delete("/:eventId/cancel", authMiddleware, eventController.cancelRegistration);
 
+// Club Admin: Delete Event
+router.delete("/:id", authMiddleware, eventController.deleteEvent);
+
 module.exports = router;

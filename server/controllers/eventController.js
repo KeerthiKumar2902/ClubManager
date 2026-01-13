@@ -238,3 +238,35 @@ exports.cancelRegistration = async (req, res) => {
     res.status(500).json({ error: "Failed to cancel registration" });
   }
 };
+
+// 9. Delete Event (Club Admin Only)
+exports.deleteEvent = async (req, res) => {
+  try {
+    const { id } = req.params; // Event ID from URL
+    const userId = req.user.id;
+
+    // 1. Check Ownership
+    const event = await prisma.event.findUnique({
+      where: { id },
+      include: { club: true }
+    });
+
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    if (event.club.adminId !== userId) {
+      return res.status(403).json({ error: "Not authorized to delete this event" });
+    }
+
+    // 2. Transaction: Delete Registrations FIRST, then the Event
+    await prisma.$transaction([
+      prisma.registration.deleteMany({ where: { eventId: id } }),
+      prisma.event.delete({ where: { id } })
+    ]);
+
+    res.json({ message: "Event deleted successfully" });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete event" });
+  }
+};
