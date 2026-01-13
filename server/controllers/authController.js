@@ -37,3 +37,39 @@ exports.register = async (req, res) => {
     res.status(500).json({ error: "Registration failed" });
   }
 };
+
+//Login Controller
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Find User
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // 2. Compare Passwords
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // 3. Generate Token
+    const token = jwt.sign(
+      { id: user.id, role: user.role }, // Payload (what's inside the token)
+      process.env.JWT_SECRET,           // Secret Key
+      { expiresIn: "1d" }               // Expiration (1 day)
+    );
+
+    res.status(200).json({ message: "Login successful", token, user });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Login failed" });
+  }
+};
