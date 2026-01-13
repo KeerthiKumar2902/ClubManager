@@ -68,6 +68,8 @@ model Registration {
   event     Event    @relation(fields: [eventId], references: [id])
   
   registeredAt DateTime @default(now())
+  
+  attended  Boolean  @default(false)
 
   // Ensure a student can't register for the same event twice
   @@unique([studentId, eventId]) 

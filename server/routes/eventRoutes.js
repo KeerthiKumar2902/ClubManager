@@ -21,4 +21,7 @@ router.get("/my-registrations", authMiddleware, eventController.getMyRegistratio
 // Protected Club Admin: Get Attendees
 router.get("/:eventId/attendees", authMiddleware, eventController.getEventAttendees);
 
+// Protected Club Admin: Mark Attendance
+router.put("/:eventId/attendance", authMiddleware, eventController.markAttendance);
+
 module.exports = router;

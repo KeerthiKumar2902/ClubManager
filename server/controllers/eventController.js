@@ -174,3 +174,39 @@ exports.getEventAttendees = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch attendees" });
   }
 };
+
+// 7. Mark Attendance (Club Admin Only)
+exports.markAttendance = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { studentId, status } = req.body; // status = true/false
+    const userId = req.user.id;
+
+    // 1. Verify Ownership (Security)
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: { club: true }
+    });
+
+    if (!event || event.club.adminId !== userId) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    // 2. Update the Registration
+    const updatedRegistration = await prisma.registration.update({
+      where: {
+        studentId_eventId: {
+          studentId: studentId,
+          eventId: eventId
+        }
+      },
+      data: { attended: status }
+    });
+
+    res.json(updatedRegistration);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to update attendance" });
+  }
+};
