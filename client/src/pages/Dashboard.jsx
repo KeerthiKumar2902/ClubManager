@@ -9,6 +9,7 @@ import CreateEventForm from '../components/CreateEventForm';
 import CreateClubForm from '../components/CreateClubForm';
 import EditEventModal from '../components/EditEventModal'; 
 import EditClubModal from '../components/EditClubModal';
+import EditProfileModal from '../components/EditProfileModal';
 
 const Dashboard = () => {
   const { user, token, logout } = useAuthStore();
@@ -22,7 +23,7 @@ const Dashboard = () => {
   // State for Editing
   const [editingEvent, setEditingEvent] = useState(null);
   const [editingClub, setEditingClub] = useState(null);       // <--- State exists
-  
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [message, setMessage] = useState('');
 
   // 1. Fetch Data based on Role
@@ -147,6 +148,10 @@ const Dashboard = () => {
         />
       )}
 
+      {showProfileModal && (
+        <EditProfileModal onClose={() => setShowProfileModal(false)} />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* LEFT: FORMS & STATS */}
@@ -154,8 +159,18 @@ const Dashboard = () => {
           {user.role === 'SUPER_ADMIN' && <CreateClubForm token={token} onClubCreated={handleNewClub} />}
           {user.role === 'CLUB_ADMIN' && <CreateEventForm token={token} onEventCreated={handleNewEvent} />}
           
+          {/* Profile Card for Everyone */}
           <div className="bg-white p-6 rounded shadow-lg border">
-            <h2 className="text-xl font-bold mb-4">My Profile</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">My Profile</h2>
+              <button 
+                onClick={() => setShowProfileModal(true)}
+                className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-2 py-1 rounded transition"
+              >
+                ⚙️ Settings
+              </button>
+            </div>
+
             <div className="p-4 bg-blue-50 rounded border border-blue-100 text-center">
               <p className="text-3xl font-bold text-blue-600 mb-1">{myTickets.length}</p>
               <p className="text-sm text-blue-800">Events Joined</p>

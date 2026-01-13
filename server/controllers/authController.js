@@ -73,3 +73,33 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: "Login failed" });
   }
 };
+
+// Update Profile (Name & Password)
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; // From the token
+    const { name, password } = req.body;
+
+    const updateData = {};
+
+    // Only update fields if they are provided
+    if (name) updateData.name = name;
+    
+    // If password provided, hash it!
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: { id: true, name: true, email: true, role: true } // Don't return the password
+    });
+
+    res.json({ message: "Profile updated successfully!", user: updatedUser });
+
+  } catch (error) {
+    console.error("Profile Update Error:", error);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+};
