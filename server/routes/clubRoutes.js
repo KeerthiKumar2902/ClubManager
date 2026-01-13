@@ -10,4 +10,7 @@ router.post("/", authMiddleware, clubController.createClub);
 // Get All Clubs (Public or Admin)
 router.get("/", clubController.getAllClubs);
 
+// Super Admin: Delete Club
+router.delete("/:id", authMiddleware, clubController.deleteClub);
+
 module.exports = router;

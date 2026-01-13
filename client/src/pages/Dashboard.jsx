@@ -96,6 +96,24 @@ const Dashboard = () => {
     setTimeout(() => setMessage(''), 3000);
   };
 
+  // handleDeleteClub
+  const handleDeleteClub = async (clubId) => {
+    if (!window.confirm("WARNING: This will delete the Club, all its Events, and downgrade the Admin. Are you sure?")) return;
+    
+    try {
+      await axios.delete(`http://localhost:5000/api/clubs/${clubId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Remove from list
+      setClubsList(clubsList.filter(club => club.id !== clubId));
+      setMessage("Club deleted successfully.");
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      alert("Failed to delete club.");
+    }
+  };
+
+
   if (!user) return null;
 
   return (
@@ -147,10 +165,19 @@ const Dashboard = () => {
             <div>
                <h2 className="text-2xl font-bold text-gray-800 mb-4">All Active Clubs</h2>
                {clubsList.map((club, i) => (
-                  <div key={i} className="bg-white p-5 rounded shadow border-l-4 border-purple-500 mb-4">
-                    <h3 className="text-xl font-bold">{club.name}</h3>
-                    <p className="text-gray-600">{club.description}</p>
-                    <p className="text-xs text-gray-400 mt-2">Admin: {club.admin?.name}</p>
+                  <div key={i} className="bg-white p-5 rounded shadow border-l-4 border-purple-500 mb-4 flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-bold">{club.name}</h3>
+                      <p className="text-gray-600">{club.description}</p>
+                      <p className="text-xs text-gray-400 mt-2">Admin: {club.admin?.name}</p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => handleDeleteClub(club.id)}
+                      className="text-red-500 hover:text-red-700 font-bold text-sm border border-red-200 px-3 py-1 rounded hover:bg-red-50 transition"
+                    >
+                      Delete Club
+                    </button>
                   </div>
                ))}
             </div>

@@ -85,3 +85,54 @@ exports.getAllClubs = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch clubs" });
   }
 };
+
+// Delete Club (Super Admin Only)
+exports.deleteClub = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Find the club first (to get the adminId)
+    const club = await prisma.club.findUnique({
+      where: { id },
+      include: { events: true }
+    });
+
+    if (!club) return res.status(404).json({ error: "Club not found" });
+
+    // 2. Perform Clean-up Transaction
+    await prisma.$transaction(async (prisma) => {
+      
+      // A. Get all event IDs for this club
+      const eventIds = club.events.map(e => e.id);
+
+      // B. Delete all registrations for these events
+      if (eventIds.length > 0) {
+        await prisma.registration.deleteMany({
+          where: { eventId: { in: eventIds } }
+        });
+      }
+
+      // C. Delete all events
+      await prisma.event.deleteMany({
+        where: { clubId: id }
+      });
+
+      // D. Delete the Club
+      await prisma.club.delete({
+        where: { id }
+      });
+
+      // E. Downgrade the Club Admin User back to STUDENT
+      await prisma.user.update({
+        where: { id: club.adminId },
+        data: { role: 'STUDENT' }
+      });
+    });
+
+    res.json({ message: "Club deleted and Admin downgraded to Student." });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete club" });
+  }
+};
