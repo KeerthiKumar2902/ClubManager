@@ -136,3 +136,72 @@ exports.deleteClub = async (req, res) => {
     res.status(500).json({ error: "Failed to delete club" });
   }
 };
+
+// 3. Update Club (Super Admin Only) - Handles Ownership Transfer
+exports.updateClub = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, adminEmail } = req.body;
+
+    // 1. Fetch current club to see who is currently the admin
+    const currentClub = await prisma.club.findUnique({
+      where: { id },
+      include: { admin: true }
+    });
+
+    if (!currentClub) return res.status(404).json({ error: "Club not found" });
+
+    // 2. Prepare data for update
+    let updateData = { name, description };
+
+    // 3. Handle Admin Change Logic (If email provided is different)
+    if (adminEmail && adminEmail !== currentClub.admin.email) {
+      // A. Find the New User
+      const newAdminUser = await prisma.user.findUnique({
+        where: { email: adminEmail }
+      });
+
+      if (!newAdminUser) {
+        return res.status(404).json({ error: `User with email ${adminEmail} not found. Please register them first.` });
+      }
+
+      // B. Verify New User isn't already an Admin of another club
+      if (newAdminUser.role === 'CLUB_ADMIN' || newAdminUser.role === 'SUPER_ADMIN') {
+        return res.status(400).json({ error: "This user is already an Admin. A student can only lead one club." });
+      }
+
+      // C. EXECUTE THE SWAP (Transaction)
+      await prisma.$transaction([
+        // Downgrade Old Admin
+        prisma.user.update({
+          where: { id: currentClub.adminId },
+          data: { role: 'STUDENT' }
+        }),
+        // Upgrade New Admin
+        prisma.user.update({
+          where: { id: newAdminUser.id },
+          data: { role: 'CLUB_ADMIN' }
+        }),
+        // Update Club Link
+        prisma.club.update({
+          where: { id },
+          data: { adminId: newAdminUser.id }
+        })
+      ]);
+      
+      // We don't need to add adminId to updateData because we handled it in the transaction
+    }
+
+    // 4. Update Name/Description (if changed)
+    const updatedClub = await prisma.club.update({
+      where: { id },
+      data: { name, description }
+    });
+
+    res.json({ message: "Club updated successfully", club: updatedClub });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to update club" });
+  }
+};

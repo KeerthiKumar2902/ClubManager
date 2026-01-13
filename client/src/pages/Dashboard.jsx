@@ -7,7 +7,8 @@ import useAuthStore from '../store/authStore';
 import EventCard from '../components/EventCard';
 import CreateEventForm from '../components/CreateEventForm';
 import CreateClubForm from '../components/CreateClubForm';
-import EditEventModal from '../components/EditEventModal'; // Imported but wasn't used before
+import EditEventModal from '../components/EditEventModal'; 
+import EditClubModal from '../components/EditClubModal';
 
 const Dashboard = () => {
   const { user, token, logout } = useAuthStore();
@@ -16,10 +17,11 @@ const Dashboard = () => {
   // State for different data sets
   const [managedEvents, setManagedEvents] = useState([]); // Events I created (Admin)
   const [myTickets, setMyTickets] = useState([]);         // Events I joined (Student)
-  const [clubsList, setClubsList] = useState([]);         // All Clubs (Super Admin)
+  const [clubsList, setClubsList] = useState([]);  
   
   // State for Editing
   const [editingEvent, setEditingEvent] = useState(null);
+  const [editingClub, setEditingClub] = useState(null);       // <--- State exists
   
   const [message, setMessage] = useState('');
 
@@ -82,12 +84,9 @@ const Dashboard = () => {
     } catch (err) { alert("Failed to cancel."); }
   };
 
-  // Handler to open modal
-  const handleEditClick = (event) => {
-    setEditingEvent(event);
-  };
+  // Edit Handlers
+  const handleEditClick = (event) => { setEditingEvent(event); };
 
-  // Handler to update the list after saving
   const handleUpdateEvent = (updatedEvent) => {
     setManagedEvents(managedEvents.map(ev => 
       ev.id === updatedEvent.id ? { ...ev, ...updatedEvent } : ev
@@ -96,23 +95,21 @@ const Dashboard = () => {
     setTimeout(() => setMessage(''), 3000);
   };
 
-  // handleDeleteClub
   const handleDeleteClub = async (clubId) => {
     if (!window.confirm("WARNING: This will delete the Club, all its Events, and downgrade the Admin. Are you sure?")) return;
-    
     try {
       await axios.delete(`http://localhost:5000/api/clubs/${clubId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Remove from list
       setClubsList(clubsList.filter(club => club.id !== clubId));
       setMessage("Club deleted successfully.");
       setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      alert("Failed to delete club.");
-    }
+    } catch (err) { alert("Failed to delete club."); }
   };
 
+  const handleUpdateClub = (updatedClub) => {
+    window.location.reload(); 
+  };
 
   if (!user) return null;
 
@@ -130,13 +127,23 @@ const Dashboard = () => {
 
       {message && <div className="fixed bottom-5 right-5 bg-blue-600 text-white px-6 py-3 rounded shadow-lg animate-bounce z-50">{message}</div>}
 
-      {/* --- EDIT MODAL (Rendered conditionally) --- */}
+      {/* --- EDIT EVENT MODAL --- */}
       {editingEvent && (
         <EditEventModal 
           event={editingEvent} 
           token={token} 
           onClose={() => setEditingEvent(null)} 
           onUpdate={handleUpdateEvent} 
+        />
+      )}
+
+      {/* --- EDIT CLUB MODAL (This was missing!) --- */}
+      {editingClub && (
+        <EditClubModal 
+          club={editingClub} 
+          token={token} 
+          onClose={() => setEditingClub(null)} 
+          onUpdate={handleUpdateClub} 
         />
       )}
 
@@ -147,7 +154,6 @@ const Dashboard = () => {
           {user.role === 'SUPER_ADMIN' && <CreateClubForm token={token} onClubCreated={handleNewClub} />}
           {user.role === 'CLUB_ADMIN' && <CreateEventForm token={token} onEventCreated={handleNewEvent} />}
           
-          {/* Profile Card for Everyone */}
           <div className="bg-white p-6 rounded shadow-lg border">
             <h2 className="text-xl font-bold mb-4">My Profile</h2>
             <div className="p-4 bg-blue-50 rounded border border-blue-100 text-center">
@@ -172,12 +178,21 @@ const Dashboard = () => {
                       <p className="text-xs text-gray-400 mt-2">Admin: {club.admin?.name}</p>
                     </div>
                     
-                    <button 
-                      onClick={() => handleDeleteClub(club.id)}
-                      className="text-red-500 hover:text-red-700 font-bold text-sm border border-red-200 px-3 py-1 rounded hover:bg-red-50 transition"
-                    >
-                      Delete Club
-                    </button>
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => setEditingClub(club)} // This sets the state
+                        className="text-blue-600 hover:text-blue-800 font-bold text-sm border border-blue-200 px-3 py-1 rounded hover:bg-blue-50 transition"
+                      >
+                        Edit
+                      </button>
+
+                      <button 
+                        onClick={() => handleDeleteClub(club.id)}
+                        className="text-red-500 hover:text-red-700 font-bold text-sm border border-red-200 px-3 py-1 rounded hover:bg-red-50 transition"
+                      >
+                        Delete Club
+                      </button>
+                    </div>
                   </div>
                ))}
             </div>
@@ -194,14 +209,14 @@ const Dashboard = () => {
                     event={event} 
                     token={token} 
                     onDelete={handleDeleteEvent} 
-                    onEdit={handleEditClick}  // <--- Passed the Edit Handler here
+                    onEdit={handleEditClick} 
                   />
                 ))
               }
             </div>
           )}
 
-          {/* 3. MY TICKETS (For Students AND Club Admins) */}
+          {/* 3. MY TICKETS */}
           {(user.role === 'STUDENT' || user.role === 'CLUB_ADMIN') && (
             <div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4">

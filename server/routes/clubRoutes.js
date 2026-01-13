@@ -13,4 +13,7 @@ router.get("/", clubController.getAllClubs);
 // Super Admin: Delete Club
 router.delete("/:id", authMiddleware, clubController.deleteClub);
 
+// Super Admin: Update Club
+router.put("/:id", authMiddleware, clubController.updateClub);
+
 module.exports = router;
