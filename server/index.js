@@ -4,6 +4,8 @@ const dotenv = require("dotenv");
 const authRoutes = require("./routes/authRoutes");
 const clubRoutes = require("./routes/clubRoutes");
 const eventRoutes = require("./routes/eventRoutes");
+const passport = require("passport");
+require("./config/passport");
 
 // Load environment variables
 dotenv.config();
@@ -19,7 +21,7 @@ app.use(express.json()); // Parse incoming JSON data
 app.use("/api/auth", authRoutes);
 app.use("/api/clubs", clubRoutes);
 app.use("/api/events", eventRoutes);
-
+app.use(passport.initialize());
 app.get("/", (req, res) => {
   res.send("🚀 Server is running! Database is connected.");
 });

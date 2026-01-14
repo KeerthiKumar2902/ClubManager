@@ -75,6 +75,25 @@ const Login = () => {
           >
             Sign In
           </button>
+          {/* ... Inside the form, after the Sign In button ... */}
+
+          <div className="mt-4 flex items-center justify-between">
+            <span className="border-b w-1/5 lg:w-1/4"></span>
+            <a href="#" className="text-xs text-center text-gray-500 uppercase">or login with</a>
+            <span className="border-b w-1/5 lg:w-1/4"></span>
+          </div>
+
+          <button
+            type="button" // Important! prevent form submit
+            onClick={() => window.location.href = "http://localhost:5000/api/auth/google"}
+            className="w-full mt-4 bg-red-500 text-white p-2 rounded hover:bg-red-600 transition flex justify-center items-center gap-2"
+          >
+            {/* Simple Google Icon SVG */}
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12.545 10.239v3.821h5.445c-0.712 2.315-2.647 3.972-5.445 3.972-3.332 0-6.033-2.701-6.033-6.032s2.701-6.032 6.033-6.032c1.498 0 2.866 0.549 3.921 1.453l2.814-2.814c-1.79-1.677-4.184-2.702-6.735-2.702-5.522 0-10 4.478-10 10s4.478 10 10 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-0.001z"></path>
+            </svg>
+            Sign in with Google
+          </button>
         </form>
 
         <div className="mt-4 text-center text-sm text-gray-600">

@@ -3,6 +3,8 @@ const router = express.Router();
 const authController = require("../controllers/authController");
 const authMiddleware = require('../middleware/authMiddleware');
 const { authLimiter } = require('../middleware/rateLimiter');
+const passport = require("passport");
+const jwt = require("jsonwebtoken"); 
 
 // Rate Limited Public Routes
 router.post("/register", authLimiter, authController.register);
@@ -17,5 +19,32 @@ router.post("/verify-email", authController.verifyEmail);
 
 // Protected Routes
 router.put("/profile", authMiddleware, authController.updateProfile);
+
+// 1. Redirect to Google
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+// 2. Google Callback
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+  (req, res) => {
+    // This runs ONLY if login successful
+    const user = req.user;
+
+    // Generate Token
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    // Redirect to Frontend with Token
+    // We pass the token in the URL (Frontend will grab it)
+    res.redirect(`http://localhost:5173/google-callback?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+  }
+);
 
 module.exports = router;

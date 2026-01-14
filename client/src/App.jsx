@@ -9,6 +9,8 @@ import Dashboard from './pages/Dashboard';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import GoogleCallback from './pages/GoogleCallback';
+
 
 function App() {
   return (
@@ -25,6 +27,7 @@ function App() {
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/google-callback" element={<GoogleCallback />} />
       </Routes>
     </div>
   );

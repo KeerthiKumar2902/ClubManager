@@ -19,7 +19,9 @@ model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  password  String   // Will be optional for OAuth users later, but keep strict for now
+  // 1. Make Password Optional (add '?') because Google users won't have one
+  password  String?  
+  
   role      Role     @default(STUDENT)
   
   // Relations
@@ -27,9 +29,12 @@ model User {
   registrations Registration[]
 
   // --- NEW SECURITY FIELDS ---
-  isVerified            Boolean   @default(false) // For Email Verification
+  // 2. Add Google ID field (Must be unique to look up users)
+  googleId              String?   @unique
+  avatar                String?
+
+  isVerified            Boolean   @default(false)
   verificationToken     String?
-  
   resetPasswordToken    String?
   resetPasswordExpires  DateTime?
   // ---------------------------
