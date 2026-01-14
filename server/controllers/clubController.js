@@ -186,18 +186,77 @@ exports.deleteClub = async (req, res) => {
   }
 };
 
-// --- 7. Update Club ---
+// --- 7. Update Club (With Ownership Transfer) ---
 exports.updateClub = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
-    
-    const updatedClub = await prisma.club.update({
-      where: { id },
-      data: { name, description }
+    const { name, description, adminEmail } = req.body;
+
+    // 1. Fetch current club to check who the current admin is
+    const currentClub = await prisma.club.findUnique({ where: { id } });
+    if (!currentClub) return res.status(404).json({ error: "Club not found" });
+
+    // 2. If no admin transfer is requested, just update details
+    if (!adminEmail) {
+      const updatedClub = await prisma.club.update({
+        where: { id },
+        data: { name, description }
+      });
+      return res.json(updatedClub);
+    }
+
+    // 3. Handle Ownership Transfer
+    const newUser = await prisma.user.findUnique({ where: { email: adminEmail } });
+    if (!newUser) return res.status(404).json({ error: "New admin email not found" });
+
+    // If the email provided is SAME as current admin, just update details
+    if (newUser.id === currentClub.adminId) {
+       const updatedClub = await prisma.club.update({
+        where: { id },
+        data: { name, description }
+      });
+      return res.json(updatedClub);
+    }
+
+    // Check if new user is busy (Already an admin of another club)
+    if (newUser.role === 'CLUB_ADMIN') {
+      return res.status(400).json({ error: "Target user is already a Club Admin of another club." });
+    }
+
+    // --- TRANSACTION: SWAP ROLES ---
+    const result = await prisma.$transaction(async (tx) => {
+      // A. Downgrade Old Admin to STUDENT
+      if (currentClub.adminId) {
+        await tx.user.update({
+          where: { id: currentClub.adminId },
+          data: { role: 'STUDENT' }
+        });
+      }
+
+      // B. Promote New User to CLUB_ADMIN
+      await tx.user.update({
+        where: { id: newUser.id },
+        data: { role: 'CLUB_ADMIN' }
+      });
+
+      // C. Update Club Details & Link to New Admin
+      const updated = await tx.club.update({
+        where: { id },
+        data: { 
+          name, 
+          description, 
+          adminId: newUser.id 
+        },
+        include: { admin: { select: { name: true, email: true } } } // Return new admin info
+      });
+
+      return updated;
     });
-    res.json(updatedClub);
+
+    res.json(result);
+
   } catch (error) {
+    console.error("Update Error:", error);
     res.status(500).json({ error: "Failed to update club" });
   }
 };
