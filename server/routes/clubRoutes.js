@@ -34,4 +34,10 @@ router.put("/:id", authMiddleware, (req, res, next) => {
     next();
 }, clubController.updateClub);
 
+// Super Admin: Manual Create (Bypass Request)
+router.post("/", authMiddleware, (req, res, next) => {
+  if (req.user.role !== "SUPER_ADMIN") return res.status(403).json({ error: "Access denied" });
+  next();
+}, clubController.createClub);
+
 module.exports = router;
