@@ -19,12 +19,20 @@ model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  password  String
+  password  String   // Will be optional for OAuth users later, but keep strict for now
   role      Role     @default(STUDENT)
   
   // Relations
   club          Club?
-  registrations Registration[] // <--- User has many registrations
+  registrations Registration[]
+
+  // --- NEW SECURITY FIELDS ---
+  isVerified            Boolean   @default(false) // For Email Verification
+  verificationToken     String?
+  
+  resetPasswordToken    String?
+  resetPasswordExpires  DateTime?
+  // ---------------------------
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

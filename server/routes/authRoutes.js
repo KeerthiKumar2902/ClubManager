@@ -2,12 +2,20 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const authMiddleware = require('../middleware/authMiddleware');
+const { authLimiter } = require('../middleware/rateLimiter');
 
-// The endpoint will be /api/auth/register
-router.post("/register", authController.register);
-// The endpoint will be /api/auth/login
-router.post("/login", authController.login);
-// Update Profile
+// Rate Limited Public Routes
+router.post("/register", authLimiter, authController.register);
+router.post("/login", authLimiter, authController.login);
+
+// Password Reset Flow
+router.post("/forgot-password", authLimiter, authController.forgotPassword);
+router.post("/reset-password", authLimiter, authController.resetPassword);
+
+// Email Verification
+router.post("/verify-email", authController.verifyEmail);
+
+// Protected Routes
 router.put("/profile", authMiddleware, authController.updateProfile);
 
 module.exports = router;
