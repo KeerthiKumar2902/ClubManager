@@ -259,4 +259,6 @@ exports.updateClub = async (req, res) => {
     console.error("Update Error:", error);
     res.status(500).json({ error: "Failed to update club" });
   }
+  
 };
+
