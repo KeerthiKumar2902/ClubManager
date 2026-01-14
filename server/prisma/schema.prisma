@@ -41,6 +41,8 @@ model User {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  clubRequests  ClubRequest[] // Relation to requests
 }
 
 model Club {
@@ -87,4 +89,26 @@ model Registration {
 
   // Ensure a student can't register for the same event twice
   @@unique([studentId, eventId]) 
+}
+
+//Add Request Status Enum
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// 4Create the ClubRequest Model
+model ClubRequest {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  
+  status      RequestStatus @default(PENDING)
+  
+  studentId   String
+  student     User          @relation(fields: [studentId], references: [id])
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }

@@ -1,83 +1,13 @@
 const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcryptjs");
-
 const prisma = new PrismaClient();
 
-exports.createClub = async (req, res) => {
-  try {
-    const { clubName, clubDescription, adminName, adminEmail, adminPassword } = req.body;
-
-    // Check if club already exists
-    const existingClub = await prisma.club.findUnique({
-      where: { name: clubName },
-    });
-    if (existingClub) {
-      return res.status(400).json({ error: "Club name already taken" });
-    }
-
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: adminEmail },
-    });
-    if (existingUser) {
-      return res.status(400).json({ error: "User email already exists" });
-    }
-
-    // HASH PASSWORD
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
-
-    // *** THE TRANSACTION ***
-    // This ensures both operations succeed, or neither does.
-    const result = await prisma.$transaction(async (prisma) => {
-      // 1. Create the Club Admin User
-      const newAdmin = await prisma.user.create({
-        data: {
-          name: adminName,
-          email: adminEmail,
-          password: hashedPassword,
-          role: "CLUB_ADMIN",
-        },
-      });
-
-      // 2. Create the Club and link it to the Admin
-      const newClub = await prisma.club.create({
-        data: {
-          name: clubName,
-          description: clubDescription,
-          adminId: newAdmin.id, // Link to the user we just created
-        },
-      });
-
-      return { newClub, newAdmin };
-    });
-
-    res.status(201).json({ 
-      message: "Club and Admin created successfully!", 
-      club: result.newClub,
-      admin: {
-          id: result.newAdmin.id,
-          name: result.newAdmin.name,
-          email: result.newAdmin.email
-      }
-    });
-
-  } catch (error) {
-    console.error("Transaction Error:", error);
-    res.status(500).json({ error: "Failed to create club." });
-  }
-};
-
-// Get All Clubs (For Super Admin or Public Directory)
+// --- 1. EXISTING: Get All Clubs (Public) ---
 exports.getAllClubs = async (req, res) => {
   try {
     const clubs = await prisma.club.findMany({
-      include: {
-        admin: {
-          select: { name: true, email: true } // Show us who runs the club
-        },
-        _count: {
-          select: { events: true } // Count how many events they have
-        }
+      include: { 
+        admin: { select: { name: true, email: true } },
+        events: true 
       }
     });
     res.json(clubs);
@@ -86,122 +16,165 @@ exports.getAllClubs = async (req, res) => {
   }
 };
 
-// Delete Club (Super Admin Only)
+// --- 2. NEW: Student Requests a Club ---
+exports.requestClub = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const studentId = req.user.id; // From authMiddleware
+
+    // Check if club name already exists
+    const existingClub = await prisma.club.findUnique({ where: { name } });
+    if (existingClub) {
+      return res.status(400).json({ error: "Club name already taken" });
+    }
+
+    // Check if user already has a pending request (prevent spam)
+    const existingRequest = await prisma.clubRequest.findFirst({
+      where: { studentId, status: "PENDING" }
+    });
+    if (existingRequest) {
+      return res.status(400).json({ error: "You already have a pending request." });
+    }
+
+    const request = await prisma.clubRequest.create({
+      data: {
+        name,
+        description,
+        studentId
+      }
+    });
+
+    res.status(201).json({ message: "Request submitted successfully!", request });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to submit request" });
+  }
+};
+
+// --- 3. NEW: Admin Views All Requests ---
+exports.getAllRequests = async (req, res) => {
+  try {
+    const requests = await prisma.clubRequest.findMany({
+      include: {
+        student: { select: { name: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' } // Newest first
+    });
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch requests" });
+  }
+};
+
+// --- 4. NEW: Admin Approves/Rejects Request ---
+exports.processClubRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const { status } = req.body; // "APPROVED" or "REJECTED"
+
+    if (!["APPROVED", "REJECTED"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+
+    const request = await prisma.clubRequest.findUnique({ where: { id: requestId } });
+    if (!request) return res.status(404).json({ error: "Request not found" });
+
+    if (request.status !== "PENDING") {
+      return res.status(400).json({ error: "Request already processed" });
+    }
+
+    // --- LOGIC A: REJECTION ---
+    if (status === "REJECTED") {
+      await prisma.clubRequest.update({
+        where: { id: requestId },
+        data: { status: "REJECTED" }
+      });
+      return res.json({ message: "Club request rejected." });
+    }
+
+    // --- LOGIC B: APPROVAL (The Big Transaction) ---
+    // We must: 1. Create Club, 2. Promote User, 3. Update Request Status
+    await prisma.$transaction(async (tx) => {
+      // 1. Create the Club
+      const newClub = await tx.club.create({
+        data: {
+          name: request.name,
+          description: request.description,
+          adminId: request.studentId
+        }
+      });
+
+      // 2. Upgrade User Role
+      await tx.user.update({
+        where: { id: request.studentId },
+        data: { role: "CLUB_ADMIN" }
+      });
+
+      // 3. Mark Request as Approved
+      await tx.clubRequest.update({
+        where: { id: requestId },
+        data: { status: "APPROVED" }
+      });
+    });
+
+    res.json({ message: "Club approved and created successfully!" });
+
+  } catch (error) {
+    console.error("Process Error:", error);
+    res.status(500).json({ error: "Failed to process request" });
+  }
+};
+
+// --- 5. EXISTING: Delete Club (Manual Admin Cleanup) ---
 exports.deleteClub = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Transaction to safely remove everything
+    await prisma.$transaction(async (tx) => {
+      // Find club to get admin ID
+      const club = await tx.club.findUnique({ where: { id } });
+      if (!club) throw new Error("Club not found");
 
-    // 1. Find the club first (to get the adminId)
-    const club = await prisma.club.findUnique({
-      where: { id },
-      include: { events: true }
-    });
-
-    if (!club) return res.status(404).json({ error: "Club not found" });
-
-    // 2. Perform Clean-up Transaction
-    await prisma.$transaction(async (prisma) => {
+      // Delete Registrations & Events
+      // Note: In a real app, you might want to soft-delete or keep archives
+      const events = await tx.event.findMany({ where: { clubId: id } });
+      const eventIds = events.map(e => e.id);
       
-      // A. Get all event IDs for this club
-      const eventIds = club.events.map(e => e.id);
+      await tx.registration.deleteMany({ where: { eventId: { in: eventIds } } });
+      await tx.event.deleteMany({ where: { clubId: id } });
 
-      // B. Delete all registrations for these events
-      if (eventIds.length > 0) {
-        await prisma.registration.deleteMany({
-          where: { eventId: { in: eventIds } }
-        });
-      }
+      // Delete Club
+      await tx.club.delete({ where: { id } });
 
-      // C. Delete all events
-      await prisma.event.deleteMany({
-        where: { clubId: id }
-      });
-
-      // D. Delete the Club
-      await prisma.club.delete({
-        where: { id }
-      });
-
-      // E. Downgrade the Club Admin User back to STUDENT
-      await prisma.user.update({
+      // Downgrade Admin back to STUDENT
+      await tx.user.update({
         where: { id: club.adminId },
-        data: { role: 'STUDENT' }
+        data: { role: "STUDENT" }
       });
     });
 
-    res.json({ message: "Club deleted and Admin downgraded to Student." });
-
+    res.json({ message: "Club deleted successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to delete club" });
   }
 };
 
-// 3. Update Club (Super Admin Only) - Handles Ownership Transfer
+// --- 6. EXISTING: Update Club ---
 exports.updateClub = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, adminEmail } = req.body;
-
-    // 1. Fetch current club to see who is currently the admin
-    const currentClub = await prisma.club.findUnique({
-      where: { id },
-      include: { admin: true }
-    });
-
-    if (!currentClub) return res.status(404).json({ error: "Club not found" });
-
-    // 2. Prepare data for update
-    let updateData = { name, description };
-
-    // 3. Handle Admin Change Logic (If email provided is different)
-    if (adminEmail && adminEmail !== currentClub.admin.email) {
-      // A. Find the New User
-      const newAdminUser = await prisma.user.findUnique({
-        where: { email: adminEmail }
-      });
-
-      if (!newAdminUser) {
-        return res.status(404).json({ error: `User with email ${adminEmail} not found. Please register them first.` });
-      }
-
-      // B. Verify New User isn't already an Admin of another club
-      if (newAdminUser.role === 'CLUB_ADMIN' || newAdminUser.role === 'SUPER_ADMIN') {
-        return res.status(400).json({ error: "This user is already an Admin. A student can only lead one club." });
-      }
-
-      // C. EXECUTE THE SWAP (Transaction)
-      await prisma.$transaction([
-        // Downgrade Old Admin
-        prisma.user.update({
-          where: { id: currentClub.adminId },
-          data: { role: 'STUDENT' }
-        }),
-        // Upgrade New Admin
-        prisma.user.update({
-          where: { id: newAdminUser.id },
-          data: { role: 'CLUB_ADMIN' }
-        }),
-        // Update Club Link
-        prisma.club.update({
-          where: { id },
-          data: { adminId: newAdminUser.id }
-        })
-      ]);
-      
-      // We don't need to add adminId to updateData because we handled it in the transaction
-    }
-
-    // 4. Update Name/Description (if changed)
+    const { name, description } = req.body;
+    
+    // Simple update
     const updatedClub = await prisma.club.update({
       where: { id },
       data: { name, description }
     });
 
-    res.json({ message: "Club updated successfully", club: updatedClub });
-
+    res.json(updatedClub);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Failed to update club" });
   }
 };
