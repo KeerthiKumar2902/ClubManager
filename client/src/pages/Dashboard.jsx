@@ -1,22 +1,24 @@
 import React from 'react';
-import DashboardContainer from './dashboard/index';
 import useAuthStore from '../store/authStore';
-import { useNavigate } from 'react-router-dom';
+
+// Import the sub-dashboards from the 'dashboard' folder
+import SuperAdminDash from './dashboard/SuperAdminDash';
+import ClubAdminDash from './dashboard/ClubAdminDash';
+import StudentDash from './dashboard/StudentDash';
 
 const Dashboard = () => {
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
+  const { user } = useAuthStore();
 
-  // Basic layout wrapper with Logout button
+  if (!user) return <div className="p-10 text-center">Loading...</div>;
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow p-4 flex justify-between items-center">
-        <div className="font-bold text-xl">Club Manager</div>
-        <button onClick={() => { logout(); navigate('/login'); }} className="text-red-500 font-bold hover:underline">Logout</button>
-      </div>
-      
-      {/* Load the sub-dashboards */}
-      <DashboardContainer />
+      {/* This component acts ONLY as a switcher. 
+          It has NO visual elements (header/footer) of its own.
+      */}
+      {user.role === 'SUPER_ADMIN' && <SuperAdminDash />}
+      {user.role === 'CLUB_ADMIN' && <ClubAdminDash />}
+      {user.role === 'STUDENT' && <StudentDash />}
     </div>
   );
 };

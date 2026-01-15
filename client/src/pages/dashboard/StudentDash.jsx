@@ -15,8 +15,9 @@ import {
   FaUserEdit, 
   FaUsers, 
   FaExternalLinkAlt,
-  FaNewspaper, // <--- New Icon
-  FaBell // <--- New Icon
+  FaNewspaper, 
+  FaBell,
+  FaBullhorn // <--- THIS WAS MISSING
 } from 'react-icons/fa';
 
 const StudentDash = () => {
@@ -25,7 +26,7 @@ const StudentDash = () => {
   const [activeTab, setActiveTab] = useState('tickets'); // 'tickets' | 'clubs' | 'news'
   const [myTickets, setMyTickets] = useState([]);
   const [myClubs, setMyClubs] = useState([]);
-  const [newsFeed, setNewsFeed] = useState([]); // <--- New State
+  const [newsFeed, setNewsFeed] = useState([]); 
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [message, setMessage] = useState('');
@@ -43,7 +44,7 @@ const StudentDash = () => {
       const [ticketRes, clubRes, newsRes] = await Promise.all([
         axios.get(`${API_URL}/api/events/my-registrations`, config),
         axios.get(`${API_URL}/api/clubs/my-memberships`, config),
-        axios.get(`${API_URL}/api/clubs/my-announcements`, config) // <--- Fetch News
+        axios.get(`${API_URL}/api/clubs/my-announcements`, config) 
       ]);
 
       setMyTickets(ticketRes.data);
@@ -191,7 +192,9 @@ const StudentDash = () => {
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-lg"><FaBullhorn /></div>
+                      <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-lg">
+                        <FaBullhorn /> 
+                      </div>
                       <div>
                         <h4 className="font-bold text-gray-900 text-lg">{item.title}</h4>
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">From: <span className="text-purple-600 font-bold">{item.club.name}</span></p>
