@@ -1,17 +1,24 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const cloudinary = require("../utils/cloudinary");
 
-// 1. Create Event (Only Club Admins)
+// 1. Create Event
 exports.createEvent = async (req, res) => {
   try {
-    // 1. Get capacity from body (default to 50 if missing)
     const { title, description, date, location, capacity } = req.body; 
     const userId = req.user.id;
+    let imageUrl = null;
 
-    const club = await prisma.club.findUnique({
-      where: { adminId: userId },
-    });
+    // Handle Image
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "club_manager/events",
+        width: 800, crop: "limit"
+      });
+      imageUrl = result.secure_url;
+    }
 
+    const club = await prisma.club.findUnique({ where: { adminId: userId } });
     if (!club) return res.status(403).json({ error: "Not authorized" });
 
     const event = await prisma.event.create({
@@ -20,13 +27,15 @@ exports.createEvent = async (req, res) => {
         description,
         date: new Date(date),
         location,
-        capacity: parseInt(capacity) || 50, // <--- Add this
+        capacity: parseInt(capacity) || 50,
+        imageUrl, // <--- Save URL
         clubId: club.id,
       },
     });
 
     res.status(201).json(event);
   } catch (error) {
+    console.error(error); // Log error for debugging
     res.status(500).json({ error: "Failed to create event" });
   }
 };
@@ -299,26 +308,27 @@ exports.deleteEvent = async (req, res) => {
   }
 };
 
-// 10. Update Event (Club Admin Only)
+// 10. Update Event
 exports.updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, date, location, capacity } = req.body;
     const userId = req.user.id;
+    let imageUrl = undefined; // Undefined means "don't touch current value"
 
-    // 1. Check Ownership
-    const event = await prisma.event.findUnique({
-      where: { id },
-      include: { club: true }
-    });
-
-    if (!event) return res.status(404).json({ error: "Event not found" });
-
-    if (event.club.adminId !== userId) {
-      return res.status(403).json({ error: "Not authorized to update this event" });
+    // Handle Image
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "club_manager/events",
+        width: 800, crop: "limit"
+      });
+      imageUrl = result.secure_url;
     }
 
-    // 2. Update Event
+    const event = await prisma.event.findUnique({ where: { id }, include: { club: true } });
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    if (event.club.adminId !== userId) return res.status(403).json({ error: "Not authorized" });
+
     const updatedEvent = await prisma.event.update({
       where: { id },
       data: {
@@ -326,14 +336,13 @@ exports.updateEvent = async (req, res) => {
         description,
         date: new Date(date),
         location,
-        capacity: parseInt(capacity)
+        capacity: parseInt(capacity),
+        ...(imageUrl && { imageUrl }) // Only update if new image exists
       }
     });
 
     res.json(updatedEvent);
-
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Failed to update event" });
   }
 };

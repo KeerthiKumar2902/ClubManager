@@ -2,12 +2,13 @@ const express = require("express");
 const router = express.Router();
 const clubController = require("../controllers/clubController");
 const authenticateUser = require("../middleware/authMiddleware"); 
+const upload = require("../middleware/upload");
 
 // --- 1. SPECIFIC ROUTES (MUST BE AT THE TOP) ---
 
 router.get("/", clubController.getAllClubs);
 
-// Student Feeds (These MUST be before /:id)
+// Student Feeds
 router.get('/my-announcements', authenticateUser, clubController.getMyAnnouncements);
 router.get('/my-memberships', authenticateUser, clubController.getMyMemberships);
 
@@ -38,7 +39,12 @@ router.delete("/:id", authenticateUser, (req, res, next) => {
   next();
 }, clubController.deleteClub);
 
-router.put("/:id", authenticateUser, clubController.updateClub);
+// --- CRITICAL FIX: Only ONE update route with upload middleware ---
+router.put("/:id", authenticateUser, upload.fields([
+  { name: 'logo', maxCount: 1 },
+  { name: 'banner', maxCount: 1 }
+]), clubController.updateClub);
+// -----------------------------------------------------------------
 
 // Profile
 router.get('/:id', clubController.getClubProfile);

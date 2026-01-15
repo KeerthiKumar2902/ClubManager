@@ -1,5 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const cloudinary = require("../utils/cloudinary");
+const upload = require("../middleware/upload");
 
 // --- 1. Get All Clubs (Public) ---
 exports.getAllClubs = async (req, res) => {
@@ -186,77 +188,62 @@ exports.deleteClub = async (req, res) => {
   }
 };
 
-// --- 7. Update Club (With Ownership Transfer) ---
-// --- 7. Update Club (Role Protected) ---
+// --- 7. Update Club (Role Protected + Images) ---
 exports.updateClub = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, adminEmail } = req.body;
-    const requestUser = req.user; // From authMiddleware
+    const requestUser = req.user;
 
-    // 1. Fetch current club
     const currentClub = await prisma.club.findUnique({ where: { id } });
     if (!currentClub) return res.status(404).json({ error: "Club not found" });
 
-    // 2. Authorization Check & Data Sanitization
-    let updateData = {};
+    // 1. Handle Images (Logo & Banner)
+    let logoUrl = undefined;
+    let bannerUrl = undefined;
 
+    // req.files is populated by the 'upload' middleware on the route
+    if (req.files) {
+      if (req.files.logo) {
+        const logoRes = await cloudinary.uploader.upload(req.files.logo[0].path, {
+          folder: "club_manager/clubs/logos",
+          width: 300, crop: "scale"
+        });
+        logoUrl = logoRes.secure_url;
+      }
+      if (req.files.banner) {
+        const bannerRes = await cloudinary.uploader.upload(req.files.banner[0].path, {
+          folder: "club_manager/clubs/banners",
+          width: 1200, crop: "limit"
+        });
+        bannerUrl = bannerRes.secure_url;
+      }
+    }
+
+    // 2. Prepare Update Data
+    let updateData = {};
     if (requestUser.role === 'CLUB_ADMIN') {
-      // CLUB_ADMIN: Can ONLY update description
-      // We ignore 'name' and 'adminEmail' even if sent
-      updateData = { description }; 
+      updateData = { description }; // Admin can only change description + images
     } else if (requestUser.role === 'SUPER_ADMIN') {
-      // SUPER_ADMIN: Can update everything
       updateData = { name, description };
     } else {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    // 3. Simple Update (No Ownership Transfer)
-    // This runs if it's a Club Admin OR if Super Admin didn't provide an email
-    if (!adminEmail || requestUser.role === 'CLUB_ADMIN') {
-      const updatedClub = await prisma.club.update({
-        where: { id },
-        data: updateData
-      });
-      return res.json(updatedClub);
-    }
+    // Attach images if they exist
+    if (logoUrl) updateData.logoUrl = logoUrl;
+    if (bannerUrl) updateData.bannerUrl = bannerUrl;
 
-    // 4. Complex Update (Ownership Transfer - SUPER ADMIN ONLY)
-    // Code below only runs for SUPER_ADMIN with adminEmail provided
-    
-    const newUser = await prisma.user.findUnique({ where: { email: adminEmail } });
-    if (!newUser) return res.status(404).json({ error: "New admin email not found" });
-
-    if (newUser.id === currentClub.adminId) {
-       const updatedClub = await prisma.club.update({ where: { id }, data: updateData });
-       return res.json(updatedClub);
-    }
-
-    if (newUser.role === 'CLUB_ADMIN') {
-      return res.status(400).json({ error: "Target user is already a Club Admin." });
-    }
-
-    // Transaction: Swap Roles
-    const result = await prisma.$transaction(async (tx) => {
-      if (currentClub.adminId) {
-        await tx.user.update({ where: { id: currentClub.adminId }, data: { role: 'STUDENT' } });
-      }
-      await tx.user.update({ where: { id: newUser.id }, data: { role: 'CLUB_ADMIN' } });
-
-      const updated = await tx.club.update({
-        where: { id },
-        data: { ...updateData, adminId: newUser.id },
-        include: { admin: { select: { name: true, email: true } } }
-      });
-      return updated;
+    // 3. Update the Database
+    const updatedClub = await prisma.club.update({
+      where: { id },
+      data: updateData
     });
 
-    res.json(result);
+    res.json(updatedClub);
 
   } catch (error) {
     console.error("Update Error:", error);
-    if (error.code === 'P2002') return res.status(400).json({ error: "Club name taken" });
     res.status(500).json({ error: "Failed to update club" });
   }
 };

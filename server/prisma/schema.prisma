@@ -57,6 +57,8 @@ model Club {
   updatedAt   DateTime @updatedAt
   members     Membership[]   // List of students who joined
   announcements Announcement[]
+  logoUrl     String?  // Small square logo
+  bannerUrl   String?  // Large background banner
 }
 
 model Event {
@@ -71,6 +73,7 @@ model Event {
   club        Club     @relation(fields: [clubId], references: [id])
   
   registrations Registration[] // <--- Event has many registrations
+  imageUrl    String?  // Event Poster
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -66,13 +66,32 @@ const ClubsList = () => {
         {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredClubs.map(club => (
-              <div key={club.id} className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden flex flex-col border border-gray-100 group">
+              <Link 
+                to={`/clubs/${club.id}`} 
+                key={club.id} 
+                className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition duration-300 overflow-hidden flex flex-col border border-gray-100 group"
+              >
                 
-                {/* Banner Placeholder */}
-                <div className="h-32 bg-gradient-to-r from-purple-600 to-indigo-600 relative">
+                {/* 1. Dynamic Banner */}
+                <div className="h-32 bg-gray-100 relative">
+                  {club.bannerUrl ? (
+                    <img 
+                      src={club.bannerUrl} 
+                      className="w-full h-full object-cover transition duration-500 group-hover:scale-105" 
+                      alt={`${club.name} banner`} 
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-r from-purple-600 to-indigo-600"></div>
+                  )}
+                  
+                  {/* 2. Dynamic Logo (Overlapping) */}
                   <div className="absolute -bottom-8 left-6">
-                    <div className="w-16 h-16 bg-white rounded-xl shadow-md flex items-center justify-center text-3xl border-4 border-white">
-                      🏛️
+                    <div className="w-16 h-16 bg-white rounded-xl shadow-md flex items-center justify-center border-4 border-white overflow-hidden">
+                      {club.logoUrl ? (
+                        <img src={club.logoUrl} className="w-full h-full object-cover" alt="logo" />
+                      ) : (
+                        <span className="text-3xl">🏛️</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -87,17 +106,14 @@ const ClubsList = () => {
                   
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
                     <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-md flex items-center gap-1">
-                      <FaUsers /> {club.events?.length || 0} Events Active
+                      <FaUsers /> {club._count?.members || 0} Members
                     </span>
-                    <Link 
-                      to={`/clubs/${club.id}`}
-                      className="text-purple-600 font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all"
-                    >
+                    <span className="text-purple-600 font-bold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
                       Visit Club <FaArrowRight />
-                    </Link>
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

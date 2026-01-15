@@ -2,12 +2,14 @@ const express = require("express");
 const router = express.Router();
 const eventController = require("../controllers/eventController");
 const authMiddleware = require("../middleware/authMiddleware");
+const upload = require("../middleware/upload");
 
 // Public: Anyone can see events
 router.get("/", eventController.getAllEvents);
 
 // Protected: Only logged-in users (Club Admins) can create
-router.post("/", authMiddleware, eventController.createEvent);
+// Protected: Create Event
+router.post("/", authMiddleware, upload.single('image'), eventController.createEvent);
 
 // Protected: Get My Club's Events
 router.get("/my-events", authMiddleware, eventController.getMyClubEvents);
@@ -31,6 +33,6 @@ router.delete("/:eventId/cancel", authMiddleware, eventController.cancelRegistra
 router.delete("/:id", authMiddleware, eventController.deleteEvent);
 
 // Club Admin: Update Event
-router.put("/:id", authMiddleware, eventController.updateEvent);
+router.put("/:id", authMiddleware, upload.single('image'), eventController.updateEvent);
 
 module.exports = router;
