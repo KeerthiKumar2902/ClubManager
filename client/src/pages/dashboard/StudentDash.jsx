@@ -17,7 +17,7 @@ import {
   FaExternalLinkAlt,
   FaNewspaper, 
   FaBell,
-  FaBullhorn // <--- THIS WAS MISSING
+  FaBullhorn 
 } from 'react-icons/fa';
 
 const StudentDash = () => {
@@ -176,7 +176,7 @@ const StudentDash = () => {
         </div>
       )}
 
-      {/* --- TAB 3: NEWS FEED (NEW) --- */}
+      {/* --- TAB 3: NEWS FEED (UPDATED WITH TIME) --- */}
       {activeTab === 'news' && (
         <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
           {newsFeed.length === 0 ? (
@@ -200,7 +200,10 @@ const StudentDash = () => {
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">From: <span className="text-purple-600 font-bold">{item.club.name}</span></p>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">{new Date(item.date).toLocaleDateString()}</span>
+                    {/* --- TIME ADDED HERE --- */}
+                    <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium border border-gray-200">
+                      {new Date(item.date).toLocaleDateString()} • {new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
                   </div>
                   <div className="pl-12">
                     <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{item.message}</p>

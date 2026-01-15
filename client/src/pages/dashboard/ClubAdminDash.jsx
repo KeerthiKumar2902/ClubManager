@@ -22,8 +22,8 @@ import {
   FaSearch,
   FaUserCircle,
   FaTrash,
-  FaBullhorn, // <--- New Icon
-  FaPaperPlane // <--- New Icon
+  FaBullhorn, 
+  FaPaperPlane 
 } from 'react-icons/fa';
 
 const ClubAdminDash = () => {
@@ -33,7 +33,7 @@ const ClubAdminDash = () => {
   const [myClub, setMyClub] = useState(null);
   const [events, setEvents] = useState([]);
   const [members, setMembers] = useState([]);
-  const [announcements, setAnnouncements] = useState([]); // <--- NEW STATE
+  const [announcements, setAnnouncements] = useState([]); 
   
   // UI State
   const [viewMode, setViewMode] = useState('admin');
@@ -298,7 +298,10 @@ const ClubAdminDash = () => {
                       <div key={ann.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-bold text-gray-900 text-lg">{ann.title}</h4>
-                          <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full">{new Date(ann.date).toLocaleDateString()}</span>
+                          {/* --- TIME ADDED HERE --- */}
+                          <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium border border-gray-200">
+                            {new Date(ann.date).toLocaleDateString()} • {new Date(ann.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </span>
                         </div>
                         <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{ann.message}</p>
                       </div>
