@@ -187,69 +187,68 @@ exports.deleteClub = async (req, res) => {
 };
 
 // --- 7. Update Club (With Ownership Transfer) ---
+// --- 7. Update Club (Role Protected) ---
 exports.updateClub = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, adminEmail } = req.body;
+    const requestUser = req.user; // From authMiddleware
 
-    // 1. Fetch current club to check who the current admin is
+    // 1. Fetch current club
     const currentClub = await prisma.club.findUnique({ where: { id } });
     if (!currentClub) return res.status(404).json({ error: "Club not found" });
 
-    // 2. If no admin transfer is requested, just update details
-    if (!adminEmail) {
+    // 2. Authorization Check & Data Sanitization
+    let updateData = {};
+
+    if (requestUser.role === 'CLUB_ADMIN') {
+      // CLUB_ADMIN: Can ONLY update description
+      // We ignore 'name' and 'adminEmail' even if sent
+      updateData = { description }; 
+    } else if (requestUser.role === 'SUPER_ADMIN') {
+      // SUPER_ADMIN: Can update everything
+      updateData = { name, description };
+    } else {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // 3. Simple Update (No Ownership Transfer)
+    // This runs if it's a Club Admin OR if Super Admin didn't provide an email
+    if (!adminEmail || requestUser.role === 'CLUB_ADMIN') {
       const updatedClub = await prisma.club.update({
         where: { id },
-        data: { name, description }
+        data: updateData
       });
       return res.json(updatedClub);
     }
 
-    // 3. Handle Ownership Transfer
+    // 4. Complex Update (Ownership Transfer - SUPER ADMIN ONLY)
+    // Code below only runs for SUPER_ADMIN with adminEmail provided
+    
     const newUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (!newUser) return res.status(404).json({ error: "New admin email not found" });
 
-    // If the email provided is SAME as current admin, just update details
     if (newUser.id === currentClub.adminId) {
-       const updatedClub = await prisma.club.update({
-        where: { id },
-        data: { name, description }
-      });
-      return res.json(updatedClub);
+       const updatedClub = await prisma.club.update({ where: { id }, data: updateData });
+       return res.json(updatedClub);
     }
 
-    // Check if new user is busy (Already an admin of another club)
     if (newUser.role === 'CLUB_ADMIN') {
-      return res.status(400).json({ error: "Target user is already a Club Admin of another club." });
+      return res.status(400).json({ error: "Target user is already a Club Admin." });
     }
 
-    // --- TRANSACTION: SWAP ROLES ---
+    // Transaction: Swap Roles
     const result = await prisma.$transaction(async (tx) => {
-      // A. Downgrade Old Admin to STUDENT
       if (currentClub.adminId) {
-        await tx.user.update({
-          where: { id: currentClub.adminId },
-          data: { role: 'STUDENT' }
-        });
+        await tx.user.update({ where: { id: currentClub.adminId }, data: { role: 'STUDENT' } });
       }
+      await tx.user.update({ where: { id: newUser.id }, data: { role: 'CLUB_ADMIN' } });
 
-      // B. Promote New User to CLUB_ADMIN
-      await tx.user.update({
-        where: { id: newUser.id },
-        data: { role: 'CLUB_ADMIN' }
-      });
-
-      // C. Update Club Details & Link to New Admin
       const updated = await tx.club.update({
         where: { id },
-        data: { 
-          name, 
-          description, 
-          adminId: newUser.id 
-        },
-        include: { admin: { select: { name: true, email: true } } } // Return new admin info
+        data: { ...updateData, adminId: newUser.id },
+        include: { admin: { select: { name: true, email: true } } }
       });
-
       return updated;
     });
 
@@ -257,8 +256,8 @@ exports.updateClub = async (req, res) => {
 
   } catch (error) {
     console.error("Update Error:", error);
+    if (error.code === 'P2002') return res.status(400).json({ error: "Club name taken" });
     res.status(500).json({ error: "Failed to update club" });
   }
-  
 };
 

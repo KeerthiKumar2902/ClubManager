@@ -228,13 +228,25 @@ exports.markAttendance = async (req, res) => {
   }
 };
 
-// 8. Cancel Registration (Student Only)
+// 8. Cancel Registration (Student Only) - FIXED
 exports.cancelRegistration = async (req, res) => {
   try {
     const userId = req.user.id;
     const { eventId } = req.params;
 
-    // Delete the specific registration row
+    // 1. Fetch Event to check date
+    const event = await prisma.event.findUnique({
+      where: { id: eventId }
+    });
+
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    // 2. CHECK: Is the event in the past?
+    if (new Date(event.date) < new Date()) {
+      return res.status(400).json({ error: "Cannot cancel ticket for a past event." });
+    }
+
+    // 3. Delete the registration
     const deleted = await prisma.registration.delete({
       where: {
         studentId_eventId: {
@@ -248,7 +260,6 @@ exports.cancelRegistration = async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    // If record not found (P2025 is Prisma error code for 'Record not found')
     if (error.code === 'P2025') {
       return res.status(404).json({ error: "Registration not found" });
     }
