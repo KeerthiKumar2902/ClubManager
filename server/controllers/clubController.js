@@ -261,3 +261,152 @@ exports.updateClub = async (req, res) => {
   }
 };
 
+// --- 8. Join a Club (Student Action) ---
+exports.joinClub = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const clubId = req.params.id;
+
+    // 1. Check if Club exists
+    const club = await prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) return res.status(404).json({ error: "Club not found" });
+
+    // 2. Check if already a member
+    const existing = await prisma.membership.findUnique({
+      where: {
+        studentId_clubId: {
+          studentId: userId,
+          clubId: clubId
+        }
+      }
+    });
+
+    if (existing) return res.status(400).json({ error: "You are already a member!" });
+
+    // 3. Create Membership
+    await prisma.membership.create({
+      data: {
+        studentId: userId,
+        clubId: clubId
+      }
+    });
+
+    res.json({ message: "Welcome to the club! 🎉" });
+
+  } catch (error) {
+    console.error("Join Error:", error);
+    res.status(500).json({ error: "Failed to join club" });
+  }
+};
+
+// --- 9. Leave a Club (Student Action) ---
+exports.leaveClub = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const clubId = req.params.id;
+
+    // Delete membership if it exists
+    await prisma.membership.delete({
+      where: {
+        studentId_clubId: {
+          studentId: userId,
+          clubId: clubId
+        }
+      }
+    });
+
+    res.json({ message: "You have left the club." });
+
+  } catch (error) {
+    // P2025 is Prisma's "Record not found" code
+    if (error.code === 'P2025') return res.status(400).json({ error: "Not a member" });
+    res.status(500).json({ error: "Failed to leave club" });
+  }
+};
+
+// --- 10. Get Public Club Profile (Directory View) ---
+exports.getClubProfile = async (req, res) => {
+  try {
+    const clubId = req.params.id;
+
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      include: {
+        admin: { select: { name: true, email: true } }, // Show who runs it
+        events: {
+          where: { date: { gte: new Date() } }, // Only show UPCOMING events
+          orderBy: { date: 'asc' }
+        },
+        _count: {
+          select: { members: true } // Show "500 Members" count
+        }
+      }
+    });
+
+    if (!club) return res.status(404).json({ error: "Club not found" });
+
+    res.json(club);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch club profile" });
+  }
+};
+
+// --- 11. Get Club Members (Admin Dashboard View) ---
+exports.getClubMembers = async (req, res) => {
+  try {
+    const clubId = req.params.id;
+    const userId = req.user.id;
+
+    // Security: Only the Admin of THIS club can see the member list
+    const club = await prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) return res.status(404).json({ error: "Club not found" });
+
+    if (club.adminId !== userId && req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: "Not authorized to view member list" });
+    }
+
+    const members = await prisma.membership.findMany({
+      where: { clubId },
+      include: {
+        student: { select: { id: true, name: true, email: true } }
+      },
+      orderBy: { joinedAt: 'desc' }
+    });
+
+    res.json(members);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch members" });
+  }
+};
+
+// --- 12. Get My Memberships (Student) ---
+exports.getMyMemberships = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const memberships = await prisma.membership.findMany({
+      where: { studentId: userId },
+      include: {
+        club: {
+          include: {
+            _count: { select: { members: true } }
+          }
+        }
+      }
+    });
+
+    // Transform data to return just the club details with join date
+    const myClubs = memberships.map(m => ({
+      ...m.club,
+      joinedAt: m.joinedAt
+    }));
+
+    res.json(myClubs);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch memberships" });
+  }
+};

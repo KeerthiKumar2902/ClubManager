@@ -11,6 +11,9 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import GoogleCallback from './pages/GoogleCallback';
 
+import ClubsList from './pages/ClubsList';     // <--- ADD THIS
+import ClubProfile from './pages/ClubProfile';
+
 
 function App() {
   return (
@@ -22,6 +25,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/clubs" element={<ClubsList />} />          
+        <Route path="/clubs/:id" element={<ClubProfile />} />
         
         {/* --- NEW SECURITY ROUTES --- */}
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
