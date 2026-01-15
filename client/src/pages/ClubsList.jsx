@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { FaSearch, FaUsers, FaArrowRight } from 'react-icons/fa';
+import { FaSearch, FaUsers, FaArrowRight, FaCalendarAlt } from 'react-icons/fa';
 
 const ClubsList = () => {
   const [clubs, setClubs] = useState([]);
@@ -104,12 +104,25 @@ const ClubsList = () => {
                     {club.description || "No description provided."}
                   </p>
                   
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
-                    <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-md flex items-center gap-1">
-                      <FaUsers /> {club._count?.members || 0} Members
-                    </span>
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50 text-xs font-medium">
+                    
+                    {/* Updated Logic: Show Members if available, else Events count */}
+                    <div className="flex gap-3">
+                        {club.events && (
+                            <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded-md flex items-center gap-1">
+                                <FaCalendarAlt /> {club.events.length} Events
+                            </span>
+                        )}
+                        {/* Ensure your API returns _count.members for this to work */}
+                        {club._count?.members !== undefined && (
+                            <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-md flex items-center gap-1">
+                                <FaUsers /> {club._count.members} Members
+                            </span>
+                        )}
+                    </div>
+
                     <span className="text-purple-600 font-bold text-sm flex items-center gap-1 group-hover:gap-2 transition-all">
-                      Visit Club <FaArrowRight />
+                      Visit <FaArrowRight />
                     </span>
                   </div>
                 </div>
