@@ -25,7 +25,6 @@ const Navbar = () => {
     setIsOpen(false);
   };
 
-  // Helper to highlight active link
   const isActive = (path) => location.pathname === path ? "text-purple-400" : "text-gray-300 hover:text-white";
 
   return (
@@ -74,10 +73,28 @@ const Navbar = () => {
                 </Link>
                 
                 <div className="pl-6 border-l border-gray-700 flex items-center gap-4">
-                  <div className="text-right hidden lg:block">
-                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Welcome</p>
-                    <p className="text-sm font-bold text-white leading-none">{user.name}</p>
+                  
+                  {/* USER PROFILE SECTION (UPDATED) */}
+                  <div className="flex items-center gap-3 text-right">
+                    <div className="hidden lg:block">
+                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Welcome</p>
+                        <p className="text-sm font-bold text-white leading-none">{user.name}</p>
+                    </div>
+                    
+                    {/* Avatar Logic */}
+                    {user.avatar ? (
+                        <img 
+                            src={user.avatar} 
+                            alt="Profile" 
+                            className="w-9 h-9 rounded-full border-2 border-gray-700 object-cover"
+                        />
+                    ) : (
+                        <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold border-2 border-gray-700">
+                            {user.name?.charAt(0).toUpperCase()}
+                        </div>
+                    )}
                   </div>
+
                   <button 
                     onClick={handleLogout}
                     className="bg-gray-800 hover:bg-red-600 text-gray-400 hover:text-white p-2 rounded-full transition-all duration-300"
@@ -91,7 +108,16 @@ const Navbar = () => {
           </div>
 
           {/* 3. Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
+          <div className="md:hidden flex items-center gap-4">
+            {user && (
+                 user.avatar ? (
+                    <img src={user.avatar} alt="Profile" className="w-8 h-8 rounded-full border border-gray-600 object-cover" />
+                ) : (
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                        {user.name?.charAt(0).toUpperCase()}
+                    </div>
+                )
+            )}
             <button onClick={() => setIsOpen(!isOpen)} className="text-gray-300 hover:text-white text-2xl focus:outline-none">
               {isOpen ? <FaTimes /> : <FaBars />}
             </button>

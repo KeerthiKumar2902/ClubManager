@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const crypto = require("crypto"); // Built-in Node module for generating tokens
 const sendEmail = require("../utils/emailService");
+const cloudinary = require("../utils/cloudinary");
 
 const prisma = new PrismaClient();
 
@@ -217,40 +218,48 @@ exports.resetPassword = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; 
-    const { name, password, currentPassword } = req.body; // <--- Extract currentPassword
-    
-    // 1. Fetch current user data to get the password hash
+    const { name, password, currentPassword } = req.body;
+    let avatarUrl = null;
+
+    // 1. Handle Image Upload (If a file was sent)
+    if (req.file) {
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "club_manager/profiles",
+          width: 300, 
+          crop: "scale" 
+        });
+        avatarUrl = result.secure_url;
+      } catch (uploadError) {
+        console.error("Cloudinary Error:", uploadError);
+        return res.status(500).json({ error: "Image upload failed" });
+      }
+    }
+
+    // 2. Fetch Current User
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const updateData = {};
     if (name) updateData.name = name;
+    if (avatarUrl) updateData.avatar = avatarUrl; // Update avatar if new one uploaded
 
-    // 2. Handle Password Change Securely
+    // 3. Handle Password Change (Existing Logic)
     if (password) {
-      // A. Require Current Password
-      if (!currentPassword) {
-        return res.status(400).json({ error: "Please enter your current password to set a new one." });
-      }
-
-      // B. Verify Current Password
+      if (!currentPassword) return res.status(400).json({ error: "Current password required." });
       const isMatch = await bcrypt.compare(currentPassword, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ error: "Incorrect current password." });
-      }
-
-      // C. Hash New Password
+      if (!isMatch) return res.status(401).json({ error: "Incorrect current password." });
       updateData.password = await bcrypt.hash(password, 10);
     }
 
-    // 3. Update Database
+    // 4. Update Database
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: { id: true, name: true, email: true, role: true } // Exclude password from response
+      select: { id: true, name: true, email: true, role: true, avatar: true } // Include avatar in response
     });
 
-    res.json({ message: "Profile updated successfully!", user: updatedUser });
+    res.json({ message: "Profile updated!", user: updatedUser });
 
   } catch (error) {
     console.error("Profile Update Error:", error);

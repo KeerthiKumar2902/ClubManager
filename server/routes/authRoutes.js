@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const { authLimiter } = require('../middleware/rateLimiter');
 const passport = require("passport");
 const jwt = require("jsonwebtoken"); 
+const upload = require("../middleware/upload");
 
 // Rate Limited Public Routes
 router.post("/register", authLimiter, authController.register);
@@ -18,7 +19,7 @@ router.post("/reset-password", authLimiter, authController.resetPassword);
 router.post("/verify-email", authController.verifyEmail);
 
 // Protected Routes
-router.put("/profile", authMiddleware, authController.updateProfile);
+router.put("/profile", authMiddleware,upload.single("avatar"), authController.updateProfile);
 
 // 1. Redirect to Google
 router.get(

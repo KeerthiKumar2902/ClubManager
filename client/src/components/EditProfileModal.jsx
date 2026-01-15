@@ -1,193 +1,193 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
-import { FaUser, FaLock, FaKey, FaTimes, FaSave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { FaUser, FaLock, FaKey, FaTimes, FaSave, FaCamera, FaCheck, FaCircle } from 'react-icons/fa';
 
 const EditProfileModal = ({ onClose }) => {
   const { user, token, login } = useAuthStore();
   
-  const [formData, setFormData] = useState({
-    name: user.name,
-    currentPassword: '', 
-    password: '',
-    confirmPassword: ''
-  });
+  const [name, setName] = useState(user.name);
+  const [file, setFile] = useState(null); 
+  const [preview, setPreview] = useState(user.avatar); 
+  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  // Strict Password Regex: Min 8 chars, 1 letter, 1 number
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
+  // Password Validation State
+  const [passwordCriteria, setPasswordCriteria] = useState({
+    length: false, upper: false, lower: false, number: false, special: false
+  });
+  const [isPasswordValid, setIsPasswordValid] = useState(true); // Default true if not changing pw
+
+  // Monitor Password Strength
+  useEffect(() => {
+    const p = passwords.new;
+    if (!p) {
+      setIsPasswordValid(true); // Valid if empty (user not changing password)
+      return;
+    }
+    const criteria = {
+      length: p.length >= 8,
+      upper: /[A-Z]/.test(p),
+      lower: /[a-z]/.test(p),
+      number: /[0-9]/.test(p),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(p)
+    };
+    setPasswordCriteria(criteria);
+    setIsPasswordValid(Object.values(criteria).every(Boolean));
+  }, [passwords.new]);
+
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected) {
+      setFile(selected);
+      setPreview(URL.createObjectURL(selected)); 
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
+    
+    // Validation Checks
+    if (passwords.new) {
+        if (!isPasswordValid) { setError("New password is too weak."); return; }
+        if (passwords.new !== passwords.confirm) { setError("New passwords do not match."); return; }
+        if (!passwords.current) { setError("Current password is required to set a new one."); return; }
+    }
+
     setLoading(true);
 
-    // --- VALIDATION ---
-    if (formData.password) {
-      if (formData.password !== formData.confirmPassword) {
-        setError("New passwords do not match.");
-        setLoading(false);
-        return;
-      }
-      if (!passwordRegex.test(formData.password)) {
-        setError("New password is too weak. (Min 8 chars, 1 letter, 1 number)");
-        setLoading(false);
-        return;
-      }
-      if (!formData.currentPassword) {
-        setError("To set a new password, you must enter your Current Password.");
-        setLoading(false);
-        return;
-      }
+    const formData = new FormData();
+    formData.append('name', name);
+    if (file) formData.append('avatar', file);
+    if (passwords.new) {
+      formData.append('password', passwords.new);
+      formData.append('currentPassword', passwords.current);
     }
 
     try {
-      const payload = { name: formData.name };
-      // Only send password fields if the user intends to change it
-      if (formData.password) {
-        payload.password = formData.password;
-        payload.currentPassword = formData.currentPassword;
-      }
-
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.put(`${API_URL}/api/auth/profile`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await axios.put(`${API_URL}/api/auth/profile`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      // --- CRITICAL FIX: Update Local State ---
-      // We pass 'token' first, then the 'user' object.
-      // This prevents the "Empty Page" crash.
-      login(token, res.data.user); 
-
-      setMessage("Profile updated successfully!");
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      login(token, res.data.user);
+      setMessage("Profile Updated!");
+      setTimeout(onClose, 1500);
 
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to update profile.");
+      setError(err.response?.data?.error || "Update failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-5 border-b border-gray-700 flex justify-between items-center text-white">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <FaUser className="text-purple-400" /> Edit Profile
-          </h2>
-          <button 
-            onClick={onClose} 
-            className="text-gray-400 hover:text-white hover:bg-gray-700/50 p-2 rounded-full transition"
-          >
-            <FaTimes />
-          </button>
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4 flex justify-between items-center text-white shrink-0">
+          <h2 className="text-lg font-bold flex items-center gap-2"><FaUser /> Edit Profile</h2>
+          <button onClick={onClose} className="hover:text-gray-300 transition"><FaTimes /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          
-          {/* Alerts */}
-          {error && (
-            <div className="flex items-center gap-2 bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 animate-pulse">
-              <FaExclamationCircle /> {error}
-            </div>
-          )}
-          {message && (
-            <div className="flex items-center gap-2 bg-green-50 text-green-600 p-3 rounded-lg text-sm border border-green-100">
-              <FaCheckCircle /> {message}
-            </div>
-          )}
+        <div className="overflow-y-auto p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+            {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border-l-4 border-red-500 font-medium">{error}</div>}
+            {message && <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm border-l-4 border-green-500 font-medium">{message}</div>}
 
-          {/* Name Field */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Full Name</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="text-gray-400" />
-              </div>
-              <input 
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition bg-gray-50 focus:bg-white" 
-                value={formData.name} 
-                onChange={e => setFormData({...formData, name: e.target.value})} 
-                required 
-              />
-            </div>
-          </div>
-
-          {/* Password Section */}
-          <div className="pt-4 border-t border-gray-100">
-            <p className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FaLock className="text-purple-500" /> Change Password <span className="text-gray-400 font-normal text-xs">(Optional)</span>
-            </p>
-
-            <div className="space-y-4">
-              {/* Current Password */}
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaKey className="text-gray-400 group-focus-within:text-purple-500 transition" />
+            {/* Avatar Upload */}
+            <div className="flex justify-center">
+                <div className="relative group">
+                <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
+                    {preview ? (
+                    <img src={preview} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-3xl"><FaUser /></div>
+                    )}
                 </div>
-                <input 
-                  type="password"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition text-sm bg-gray-50 focus:bg-white" 
-                  placeholder="Current Password (Required to change)"
-                  value={formData.currentPassword} 
-                  onChange={e => setFormData({...formData, currentPassword: e.target.value})} 
-                />
-              </div>
-
-              {/* New & Confirm */}
-              <div className="grid grid-cols-2 gap-3">
-                <input 
-                  type="password"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition text-sm bg-gray-50 focus:bg-white" 
-                  placeholder="New Password"
-                  value={formData.password} 
-                  onChange={e => setFormData({...formData, password: e.target.value})} 
-                />
-                <input 
-                  type="password"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition text-sm bg-gray-50 focus:bg-white" 
-                  placeholder="Confirm New"
-                  value={formData.confirmPassword} 
-                  onChange={e => setFormData({...formData, confirmPassword: e.target.value})} 
-                />
-              </div>
+                <label className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full cursor-pointer hover:bg-purple-700 shadow-md transition transform group-hover:scale-110">
+                    <FaCamera size={12} />
+                    <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                </label>
+                </div>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-2">
+            {/* Name */}
+            <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Full Name</label>
+                <input className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none transition" value={name} onChange={e => setName(e.target.value)} required />
+            </div>
+
+            {/* Password Section */}
+            <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm font-bold mb-3 flex items-center gap-2 text-gray-700"><FaLock className="text-purple-500"/> Change Password</p>
+                
+                <input 
+                    type="password" 
+                    placeholder="Current Password (Required to change)" 
+                    className="w-full border border-gray-300 p-2.5 rounded-lg mb-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none transition" 
+                    value={passwords.current} 
+                    onChange={e => setPasswords({...passwords, current: e.target.value})} 
+                />
+                
+                <div className="flex gap-2 mb-3">
+                    <input 
+                        type="password" 
+                        placeholder="New Password" 
+                        className={`w-full border p-2.5 rounded-lg text-sm focus:ring-2 outline-none transition ${passwords.new && !isPasswordValid ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:ring-purple-500'}`}
+                        value={passwords.new} 
+                        onChange={e => setPasswords({...passwords, new: e.target.value})} 
+                    />
+                    <input 
+                        type="password" 
+                        placeholder="Confirm New" 
+                        className="w-full border border-gray-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none transition" 
+                        value={passwords.confirm} 
+                        onChange={e => setPasswords({...passwords, confirm: e.target.value})} 
+                    />
+                </div>
+
+                {/* Password Criteria Checklist (Only show if typing new password) */}
+                {passwords.new && (
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 grid grid-cols-2 gap-2 text-xs">
+                        <CriteriaItem met={passwordCriteria.length} label="8+ chars" />
+                        <CriteriaItem met={passwordCriteria.upper} label="Uppercase" />
+                        <CriteriaItem met={passwordCriteria.lower} label="Lowercase" />
+                        <CriteriaItem met={passwordCriteria.number} label="Number" />
+                        <CriteriaItem met={passwordCriteria.special} label="Symbol" />
+                    </div>
+                )}
+            </div>
+
             <button 
-              type="button" 
-              onClick={onClose} 
-              className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 font-bold rounded-xl transition text-sm"
+                type="submit" 
+                disabled={loading || (passwords.new && !isPasswordValid)} 
+                className="w-full bg-black text-white font-bold py-3 rounded-xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg flex items-center justify-center gap-2"
             >
-              Cancel
+                {loading ? 'Saving...' : <><FaSave /> Save Changes</>}
             </button>
-            <button 
-              type="submit" 
-              disabled={loading} 
-              className="px-6 py-2.5 bg-black text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition shadow-lg flex items-center gap-2 text-sm"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <><FaSave /> Save Changes</>
-              )}
-            </button>
-          </div>
-        </form>
+            </form>
+        </div>
       </div>
     </div>
   );
 };
+
+// Helper for checklist
+const CriteriaItem = ({ met, label }) => (
+  <div className={`flex items-center gap-1.5 transition-colors duration-200 ${met ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+    {met ? <FaCheck className="text-[10px]" /> : <FaCircle className="text-[4px]" />}
+    {label}
+  </div>
+);
 
 export default EditProfileModal;
