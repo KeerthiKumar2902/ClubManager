@@ -410,3 +410,39 @@ exports.getMyMemberships = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch memberships" });
   }
 };
+
+// --- 13. Remove Member (Club Admin Action) ---
+exports.removeMember = async (req, res) => {
+  try {
+    // 'id' is the clubId (from router /:id), 'studentId' is the member to remove
+    const { id: clubId, studentId } = req.params;
+    const requesterId = req.user.id;
+
+    // 1. Verify Club Ownership
+    const club = await prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) return res.status(404).json({ error: "Club not found" });
+
+    // Only the Club Admin (or Super Admin) can remove people
+    if (club.adminId !== requesterId && req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: "Not authorized to remove members" });
+    }
+
+    // 2. Delete the Membership
+    await prisma.membership.delete({
+      where: {
+        studentId_clubId: {
+          studentId: studentId,
+          clubId: clubId
+        }
+      }
+    });
+
+    res.json({ message: "Member removed successfully" });
+
+  } catch (error) {
+    console.error("Remove Member Error:", error);
+    // P2025 is Prisma's "Record not found" code
+    if (error.code === 'P2025') return res.status(404).json({ error: "Membership not found" });
+    res.status(500).json({ error: "Failed to remove member" });
+  }
+};

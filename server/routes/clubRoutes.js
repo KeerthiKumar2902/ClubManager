@@ -50,5 +50,7 @@ router.delete('/:id/leave', authenticateUser, clubController.leaveClub);
 
 // Protected: View Members (Admin Only)
 router.get('/:id/members', authenticateUser, clubController.getClubMembers);
+// Protected: Remove a Member (Admin Only) 
+router.delete('/:id/members/:studentId', authenticateUser, clubController.removeMember);
 
 module.exports = router;
