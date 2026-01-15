@@ -7,17 +7,9 @@ import EditProfileModal from '../../components/EditProfileModal';
 
 // ICONS
 import { 
-  FaTicketAlt, 
-  FaCalendarCheck, 
-  FaMapMarkerAlt, 
-  FaClock, 
-  FaPlus, 
-  FaUserEdit, 
-  FaUsers, 
-  FaExternalLinkAlt,
-  FaNewspaper, 
-  FaBell,
-  FaBullhorn 
+  FaTicketAlt, FaCalendarCheck, FaMapMarkerAlt, FaClock, FaPlus, 
+  FaUserEdit, FaUsers, FaExternalLinkAlt, FaNewspaper, FaBell,
+  FaBullhorn, FaSignOutAlt, FaChevronRight, FaCheckCircle 
 } from 'react-icons/fa';
 
 const StudentDash = () => {
@@ -82,62 +74,92 @@ const StudentDash = () => {
     <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-500">
       
       {/* Header & Tabs */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div className="flex bg-white p-1.5 rounded-xl border shadow-sm gap-1 overflow-x-auto">
+      <div className="flex flex-col lg:flex-row justify-between items-center mb-10 gap-6">
+        
+        {/* Tab Navigation */}
+        <div className="flex bg-white p-1.5 rounded-full border shadow-sm w-full lg:w-auto overflow-x-auto">
           <button 
             onClick={() => setActiveTab('tickets')}
-            className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition ${activeTab === 'tickets' ? 'bg-black text-white shadow' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'tickets' ? 'bg-black text-white shadow-md transform scale-105' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            <FaTicketAlt /> Tickets
+            <FaTicketAlt /> My Tickets
           </button>
           <button 
             onClick={() => setActiveTab('clubs')}
-            className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition ${activeTab === 'clubs' ? 'bg-purple-600 text-white shadow' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'clubs' ? 'bg-purple-600 text-white shadow-md transform scale-105' : 'text-gray-500 hover:bg-gray-50'}`}
           >
             <FaUsers /> Communities
           </button>
           <button 
             onClick={() => setActiveTab('news')}
-            className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition ${activeTab === 'news' ? 'bg-orange-500 text-white shadow' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-full text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'news' ? 'bg-orange-500 text-white shadow-md transform scale-105' : 'text-gray-500 hover:bg-gray-50'}`}
           >
             <FaNewspaper /> News Feed
-            {newsFeed.length > 0 && <span className="bg-white text-orange-600 text-[10px] px-1.5 py-0.5 rounded-full">{newsFeed.length}</span>}
+            {newsFeed.length > 0 && <span className="ml-1 bg-white text-orange-600 text-[10px] px-1.5 py-0.5 rounded-full shadow-sm">{newsFeed.length}</span>}
           </button>
         </div>
         
-        <div className="flex gap-3">
-           <button onClick={() => setShowProfileModal(true)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"><FaUserEdit /> Edit Profile</button>
-           {user.role === 'STUDENT' && <button onClick={() => setIsRequestModalOpen(true)} className="bg-black text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition font-bold flex items-center gap-2 shadow-lg"><FaPlus /> Start a Club</button>}
+        {/* Actions */}
+        <div className="flex gap-3 w-full lg:w-auto">
+           <button onClick={() => setShowProfileModal(true)} className="flex-1 lg:flex-none px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-bold flex items-center justify-center gap-2 shadow-sm transition"><FaUserEdit /> Edit Profile</button>
+           {user.role === 'STUDENT' && <button onClick={() => setIsRequestModalOpen(true)} className="flex-1 lg:flex-none bg-gradient-to-r from-black to-gray-800 text-white px-5 py-2.5 rounded-xl hover:shadow-lg transition font-bold flex items-center justify-center gap-2"><FaPlus /> Start a Club</button>}
         </div>
       </div>
 
-      {message && <div className="fixed top-5 right-5 bg-black text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce">{message}</div>}
+      {message && <div className="fixed top-20 right-5 bg-black text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-bounce flex items-center gap-2"><FaCheckCircle className="text-green-400"/> {message}</div>}
 
       {/* --- TAB 1: TICKETS --- */}
       {activeTab === 'tickets' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-left-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-left-4 duration-500">
           {myTickets.length === 0 ? (
-            <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
-              <FaTicketAlt className="mx-auto text-6xl text-gray-200 mb-4" />
-              <h3 className="text-xl font-bold text-gray-800">No active tickets</h3>
-              <Link to="/" className="text-purple-600 font-bold hover:underline">Browse Events →</Link>
+            <div className="col-span-full text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">🎟️</div>
+              <h3 className="text-xl font-bold text-gray-900">No active tickets</h3>
+              <p className="text-gray-500 mb-6">You haven't registered for any upcoming events.</p>
+              <Link to="/" className="inline-block px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition">Browse Events</Link>
             </div>
           ) : (
             myTickets.map(ticket => (
-              <div key={ticket.id} className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col relative overflow-hidden hover:shadow-md transition">
-                <div className="h-28 bg-gradient-to-r from-indigo-500 to-purple-600 p-5 text-white flex flex-col justify-between">
-                  <div className="font-bold opacity-90 text-sm tracking-wider uppercase">{ticket.event.club?.name || 'Event Pass'}</div>
-                  <h3 className="text-xl font-bold truncate">{ticket.event.title}</h3>
+              <div key={ticket.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col relative overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                
+                {/* Event Image / Gradient Header */}
+                <div className="h-32 relative overflow-hidden">
+                    {ticket.event.imageUrl ? (
+                        <img src={ticket.event.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="Event" />
+                    ) : (
+                        <div className="w-full h-full bg-gradient-to-r from-indigo-500 to-purple-600 p-5 text-white flex flex-col justify-between">
+                            <div className="font-bold opacity-80 text-xs tracking-wider uppercase">{ticket.event.club?.name || 'Event Pass'}</div>
+                            <h3 className="text-xl font-bold truncate">{ticket.event.title}</h3>
+                        </div>
+                    )}
+                    {ticket.event.imageUrl && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-4">
+                            <h3 className="text-white text-lg font-bold truncate shadow-sm">{ticket.event.title}</h3>
+                        </div>
+                    )}
                 </div>
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  <div className="space-y-3 mt-2">
-                    <div className="flex items-center gap-3 text-sm text-gray-600"><FaCalendarCheck className="text-indigo-500" /><span className="font-medium">{new Date(ticket.event.date).toLocaleDateString()}</span></div>
-                    <div className="flex items-center gap-3 text-sm text-gray-600"><FaClock className="text-indigo-500" /><span className="font-medium">{new Date(ticket.event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-                    <div className="flex items-center gap-3 text-sm text-gray-600"><FaMapMarkerAlt className="text-indigo-500" /><span className="font-medium truncate">{ticket.event.location}</span></div>
+
+                <div className="p-5 flex-1 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 text-gray-800 font-bold">
+                            <FaCalendarCheck className="text-purple-600" /> 
+                            {new Date(ticket.event.date).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-700 font-bold bg-gray-100 border border-gray-200 px-2 py-1 rounded text-xs">
+                            <FaClock /> 
+                            {new Date(ticket.event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
+                        <FaMapMarkerAlt className="text-gray-400" />
+                        <span className="truncate">{ticket.event.location}</span>
+                    </div>
                   </div>
-                  <div className="mt-6 pt-5 border-t border-dashed border-gray-200 flex justify-between items-center">
-                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase">Admit One</span>
-                    <button onClick={() => handleCancelTicket(ticket.event.id)} className="text-red-500 text-xs font-bold hover:underline">Cancel</button>
+
+                  <div className="mt-6 pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
+                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border border-green-200">Confirmed</span>
+                    <button onClick={() => handleCancelTicket(ticket.event.id)} className="text-red-500 text-xs font-bold hover:text-red-700 hover:underline transition">Cancel Ticket</button>
                   </div>
                 </div>
               </div>
@@ -146,29 +168,62 @@ const StudentDash = () => {
         </div>
       )}
 
-      {/* --- TAB 2: CLUBS --- */}
+      {/* --- TAB 2: COMMUNITIES (VISUAL UPGRADE) --- */}
       {activeTab === 'clubs' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-right-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-right-4 duration-500">
           {myClubs.length === 0 ? (
-            <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
-              <FaUsers className="mx-auto text-6xl text-gray-200 mb-4" />
-              <h3 className="text-xl font-bold text-gray-800">You haven't joined any clubs</h3>
-              <Link to="/clubs" className="text-purple-600 font-bold hover:underline">Explore Clubs →</Link>
+            <div className="col-span-full text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">🚀</div>
+              <h3 className="text-xl font-bold text-gray-900">Join a Community</h3>
+              <p className="text-gray-500 mb-6">You aren't a member of any clubs yet.</p>
+              <Link to="/clubs" className="inline-block px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition">Explore Clubs</Link>
             </div>
           ) : (
             myClubs.map(club => (
-              <div key={club.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col hover:shadow-lg transition">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-2xl border border-purple-100">🏛️</div>
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900">{club.name}</h3>
-                    <p className="text-xs text-gray-500">Joined: {new Date(club.joinedAt).toLocaleDateString()}</p>
-                  </div>
+              <div key={club.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group">
+                
+                {/* Banner Header */}
+                <div className="h-28 bg-gray-100 relative">
+                    {club.bannerUrl ? (
+                        <img src={club.bannerUrl} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" alt="Banner" />
+                    ) : (
+                        <div className="w-full h-full bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+                    )}
+                    
+                    {/* Floating Logo */}
+                    <div className="absolute -bottom-6 left-6">
+                        <div className="w-14 h-14 bg-white rounded-xl shadow-md border-4 border-white overflow-hidden flex items-center justify-center">
+                            {club.logoUrl ? <img src={club.logoUrl} className="w-full h-full object-cover" alt="Logo"/> : <span className="text-2xl">🏛️</span>}
+                        </div>
+                    </div>
                 </div>
-                <p className="text-sm text-gray-600 line-clamp-2 mb-6 flex-1">{club.description}</p>
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <Link to={`/clubs/${club.id}`} className="text-purple-600 font-bold text-sm flex items-center gap-1 hover:gap-2 transition-all">View Page <FaExternalLinkAlt className="text-xs" /></Link>
-                  <button onClick={() => handleLeaveClub(club.id)} className="text-red-400 text-xs font-bold hover:text-red-600">Leave</button>
+
+                <div className="pt-8 px-6 pb-6 flex-1 flex flex-col">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-lg text-gray-900 group-hover:text-purple-600 transition">{club.name}</h3>
+                    
+                    {/* Darker Member Since Badge */}
+                    <span className="text-[10px] bg-purple-100 text-purple-900 border border-purple-200 px-2 py-1 rounded-md font-bold uppercase tracking-wider">
+                        Since {new Date(club.joinedAt).getFullYear()}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm text-gray-500 line-clamp-2 mb-6 flex-1">{club.description}</p>
+                  
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100 gap-3">
+                    <Link to={`/clubs/${club.id}`} className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition">
+                        View Page <FaExternalLinkAlt className="text-[10px]" />
+                    </Link>
+                    
+                    {/* Explicit Leave Button with Text */}
+                    <button 
+                        onClick={() => handleLeaveClub(club.id)} 
+                        className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 rounded-lg text-xs font-bold transition flex items-center gap-2" 
+                        title="Leave Club"
+                    >
+                        <FaSignOutAlt /> Leave
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -176,37 +231,43 @@ const StudentDash = () => {
         </div>
       )}
 
-      {/* --- TAB 3: NEWS FEED (UPDATED WITH TIME) --- */}
+      {/* --- TAB 3: NEWS FEED --- */}
       {activeTab === 'news' && (
         <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
           {newsFeed.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
-              <FaBell className="mx-auto text-6xl text-gray-200 mb-4" />
-              <h3 className="text-xl font-bold text-gray-800">No recent updates</h3>
-              <p className="text-gray-500">Join more clubs to see their announcements here.</p>
+            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+              <FaBell className="mx-auto text-5xl text-gray-300 mb-4" />
+              <h3 className="text-xl font-bold text-gray-800">All caught up!</h3>
+              <p className="text-gray-500">No new announcements from your communities.</p>
             </div>
           ) : (
             <div className="space-y-6">
               {newsFeed.map(item => (
                 <div key={item.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition">
-                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-orange-400 to-orange-600"></div>
+                  
+                  <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-lg">
+                      <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-lg shadow-inner">
                         <FaBullhorn /> 
                       </div>
                       <div>
-                        <h4 className="font-bold text-gray-900 text-lg">{item.title}</h4>
-                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">From: <span className="text-purple-600 font-bold">{item.club.name}</span></p>
+                        <h4 className="font-bold text-gray-900 text-lg leading-tight">{item.title}</h4>
+                        <Link to={`/clubs/${item.clubId}`} className="text-xs text-purple-600 font-bold hover:underline uppercase tracking-wide">
+                            {item.club.name}
+                        </Link>
                       </div>
                     </div>
-                    {/* --- TIME ADDED HERE --- */}
-                    <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium border border-gray-200">
-                      {new Date(item.date).toLocaleDateString()} • {new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                      {new Date(item.date).toLocaleDateString()}
                     </span>
                   </div>
+                  
                   <div className="pl-12">
-                    <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{item.message}</p>
+                    <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm">{item.message}</p>
+                    <div className="mt-3 flex items-center gap-1 text-xs text-gray-400 font-medium">
+                        <FaClock /> {new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </div>
                   </div>
                 </div>
               ))}
