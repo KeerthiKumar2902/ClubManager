@@ -446,3 +446,85 @@ exports.removeMember = async (req, res) => {
     res.status(500).json({ error: "Failed to remove member" });
   }
 };
+
+// --- 14. Post Announcement (Club Admin) ---
+exports.postAnnouncement = async (req, res) => {
+  try {
+    const { id: clubId } = req.params;
+    const { title, message } = req.body;
+    const userId = req.user.id;
+
+    // 1. Verify Ownership
+    const club = await prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) return res.status(404).json({ error: "Club not found" });
+    
+    if (club.adminId !== userId && req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: "Not authorized to post updates" });
+    }
+
+    // 2. Create Announcement
+    const announcement = await prisma.announcement.create({
+      data: {
+        title,
+        message,
+        clubId
+      }
+    });
+
+    // TODO: Send Email Notification to all members (Optional Future Add-on)
+
+    res.status(201).json(announcement);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to post announcement" });
+  }
+};
+
+// --- 15. Get Announcements for a Club (Admin View) ---
+exports.getClubAnnouncements = async (req, res) => {
+  try {
+    const { id: clubId } = req.params;
+    
+    const announcements = await prisma.announcement.findMany({
+      where: { clubId },
+      orderBy: { date: 'desc' }
+    });
+
+    res.json(announcements);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch announcements" });
+  }
+};
+
+// --- 16. Get Student News Feed (My Clubs' Announcements) ---
+exports.getMyAnnouncements = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 1. Find all club IDs the student is a member of
+    const memberships = await prisma.membership.findMany({
+      where: { studentId: userId },
+      select: { clubId: true }
+    });
+
+    const clubIds = memberships.map(m => m.clubId);
+
+    // 2. Fetch announcements ONLY from those clubs
+    const feed = await prisma.announcement.findMany({
+      where: {
+        clubId: { in: clubIds }
+      },
+      include: {
+        club: { select: { name: true } } // Show which club sent it
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    res.json(feed);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch news feed" });
+  }
+};
