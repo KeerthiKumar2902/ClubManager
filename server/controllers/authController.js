@@ -212,22 +212,46 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// --- UPDATE PROFILE (Existing) ---
+
+// --- UPDATE PROFILE 
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; 
-    const { name, password } = req.body;
+    const { name, password, currentPassword } = req.body; // <--- Extract currentPassword
+    
+    // 1. Fetch current user data to get the password hash
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
     const updateData = {};
     if (name) updateData.name = name;
-    if (password) updateData.password = await bcrypt.hash(password, 10);
 
+    // 2. Handle Password Change Securely
+    if (password) {
+      // A. Require Current Password
+      if (!currentPassword) {
+        return res.status(400).json({ error: "Please enter your current password to set a new one." });
+      }
+
+      // B. Verify Current Password
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ error: "Incorrect current password." });
+      }
+
+      // C. Hash New Password
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    // 3. Update Database
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: { id: true, name: true, email: true, role: true }
+      select: { id: true, name: true, email: true, role: true } // Exclude password from response
     });
 
     res.json({ message: "Profile updated successfully!", user: updatedUser });
+
   } catch (error) {
     console.error("Profile Update Error:", error);
     res.status(500).json({ error: "Failed to update profile" });

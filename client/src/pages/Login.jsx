@@ -1,104 +1,148 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom'; // Added Link
+import { useNavigate, Link } from 'react-router-dom'; 
 import useAuthStore from '../store/authStore';
+import { FaEnvelope, FaLock, FaGoogle, FaSignInAlt } from 'react-icons/fa';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(''); // Clear previous errors
+    setError('');
+    setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.post(`${API_URL}/api/auth/login`, {
         email,
         password
       });
 
-      // 1. Save data to global store
       login(res.data.token, res.data.user);
-
-      // 2. Redirect to Dashboard
       navigate('/dashboard');
 
     } catch (err) {
-      // NOW: We show the specific error from the backend (e.g., "Please verify your email first!")
       setError(err.response?.data?.error || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleGoogleLogin = () => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    window.location.href = `${API_URL}/api/auth/google`;
+  };
+
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-96">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
         
-        {error && <div className="bg-red-100 text-red-700 p-2 rounded text-sm mb-4">{error}</div>}
+        {/* Header */}
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 text-purple-600 mb-4">
+            <FaSignInAlt className="text-xl" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Welcome Back</h2>
+          <p className="mt-2 text-sm text-gray-500">Sign in to access your dashboard</p>
+        </div>
 
-        <form onSubmit={handleLogin}>
-          <div className="mb-4">
-            <label className="block text-gray-700">Email</label>
-            <input 
-              type="email" 
-              className="w-full border p-2 rounded mt-1"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md text-sm" role="alert">
+            <p className="font-bold">Error</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          <div className="space-y-4 rounded-md shadow-sm">
+            
+            {/* Email Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaEnvelope className="text-gray-400" />
+                </div>
+                <input
+                  type="email"
+                  required
+                  className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:text-sm transition"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaLock className="text-gray-400" />
+                </div>
+                <input
+                  type="password"
+                  required
+                  className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent sm:text-sm transition"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="mb-2">
-            <label className="block text-gray-700">Password</label>
-            <input 
-              type="password" 
-              className="w-full border p-2 rounded mt-1"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* --- NEW: Forgot Password Link --- */}
-          <div className="text-right mb-6">
-            <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
-              Forgot Password?
+          <div className="flex items-center justify-end">
+            <Link to="/forgot-password" className="font-medium text-purple-600 hover:text-purple-500 text-sm">
+              Forgot your password?
             </Link>
           </div>
 
-          <button 
-            type="submit" 
-            className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
-          >
-            Sign In
-          </button>
-          {/* ... Inside the form, after the Sign In button ... */}
-
-          <div className="mt-4 flex items-center justify-between">
-            <span className="border-b w-1/5 lg:w-1/4"></span>
-            <a href="#" className="text-xs text-center text-gray-500 uppercase">or login with</a>
-            <span className="border-b w-1/5 lg:w-1/4"></span>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
           </div>
 
-          <button
-            type="button" // Important! prevent form submit
-            onClick={() => window.location.href = "http://localhost:5000/api/auth/google"}
-            className="w-full mt-4 bg-red-500 text-white p-2 rounded hover:bg-red-600 transition flex justify-center items-center gap-2"
-          >
-            {/* Simple Google Icon SVG */}
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12.545 10.239v3.821h5.445c-0.712 2.315-2.647 3.972-5.445 3.972-3.332 0-6.033-2.701-6.033-6.032s2.701-6.032 6.033-6.032c1.498 0 2.866 0.549 3.921 1.453l2.814-2.814c-1.79-1.677-4.184-2.702-6.735-2.702-5.522 0-10 4.478-10 10s4.478 10 10 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-0.001z"></path>
-            </svg>
-            Sign in with Google
-          </button>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition"
+            >
+              <FaGoogle className="text-red-500 text-lg" />
+              Sign in with Google
+            </button>
+          </div>
         </form>
 
-        <div className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account? <Link to="/register" className="text-blue-600 hover:underline">Register</Link>
-        </div>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Don't have an account?{' '}
+          <Link to="/register" className="font-medium text-purple-600 hover:text-purple-500">
+            Sign up for free
+          </Link>
+        </p>
       </div>
     </div>
   );
