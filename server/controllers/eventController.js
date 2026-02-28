@@ -279,35 +279,36 @@ exports.cancelRegistration = async (req, res) => {
 // 9. Delete Event (Club Admin Only)
 exports.deleteEvent = async (req, res) => {
   try {
-    const { id } = req.params; // Event ID from URL
-    const userId = req.user.id;
+    const { id } = req.params;
 
-    // 1. Check Ownership
-    const event = await prisma.event.findUnique({
-      where: { id },
-      include: { club: true }
-    });
-
+    // 1. Fetch the event FIRST to get the image URL
+    const event = await prisma.event.findUnique({ where: { id } });
     if (!event) return res.status(404).json({ error: "Event not found" });
 
-    if (event.club.adminId !== userId) {
-      return res.status(403).json({ error: "Not authorized to delete this event" });
+    // 2. Delete the image from Cloudinary (if it exists)
+    if (event.imageUrl) {
+      // Clever trick to extract the Public ID from the URL
+      // Splits by '/' grabs the last parts, and removes the '.jpg' or '.png'
+      const urlParts = event.imageUrl.split('/');
+      const filename = urlParts.pop().split('.')[0]; 
+      const folder = urlParts.pop(); // Grabs "events"
+      const parentFolder = urlParts.pop(); // Grabs "club_manager"
+      
+      const publicId = `${parentFolder}/${folder}/${filename}`;
+
+      // Tell Cloudinary to destroy it!
+      await cloudinary.uploader.destroy(publicId);
+      console.log(`Deleted Cloudinary image: ${publicId}`);
     }
 
-    // 2. Transaction: Delete Registrations FIRST, then the Event
-    await prisma.$transaction([
-      prisma.registration.deleteMany({ where: { eventId: id } }),
-      prisma.event.delete({ where: { id } })
-    ]);
+    // 3. Now it is safe to delete the actual database row!
+    await prisma.event.delete({ where: { id } });
 
-    res.json({ message: "Event deleted successfully" });
-
+    res.json({ message: "Event and poster deleted successfully" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Failed to delete event" });
   }
 };
-
 // 10. Update Event
 exports.updateEvent = async (req, res) => {
   try {
