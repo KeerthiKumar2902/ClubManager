@@ -9,7 +9,8 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/api/auth/google/callback",
+      callbackURL: `${process.env.BACKEND_URL || "http://localhost:5000"}/api/auth/google/callback`,
+      proxy: true,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -32,10 +33,10 @@ passport.use(
         if (user) {
           user = await prisma.user.update({
             where: { id: user.id },
-            data: { 
-              googleId: profile.id, 
-              isVerified: true // Trust Google that email is real
-            }, 
+            data: {
+              googleId: profile.id,
+              isVerified: true, // Trust Google that email is real
+            },
           });
           return done(null, user);
         }
@@ -55,8 +56,8 @@ passport.use(
       } catch (err) {
         done(err, null);
       }
-    }
-  )
+    },
+  ),
 );
 
 // Serialization (Not strictly needed for JWT-only, but good practice for Passport)
