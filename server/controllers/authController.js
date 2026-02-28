@@ -57,9 +57,9 @@ exports.register = async (req, res) => {
       });
     } catch (emailError) {
       console.error("Email send failed:", emailError);
-      // Optional: Delete user if email fails so they can try again?
-      // await prisma.user.delete({ where: { id: user.id } });
-      return res.status(500).json({ error: "User created, but email failed to send." });
+      // Uncomment the deletion logic!
+      await prisma.user.delete({ where: { email: user.email } });
+      return res.status(500).json({ error: "Registration failed. Please try again." });
     }
 
   } catch (error) {
