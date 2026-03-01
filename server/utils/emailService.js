@@ -5,7 +5,7 @@ const sendEmail = async (options) => {
   const transporter = nodemailer.createTransport({
     // 1. Hardcode the host and port instead of using the "Gmail" shortcut
     host: "smtp.gmail.com",
-    port: 465,
+    port: 587,
     secure: true,
     auth: {
       user: process.env.EMAIL_USER,
