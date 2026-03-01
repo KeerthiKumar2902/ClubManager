@@ -3,19 +3,17 @@ const nodemailer = require("nodemailer");
 const sendEmail = async (options) => {
   // 1. Create Transporter
   const transporter = nodemailer.createTransport({
-    // 1. Hardcode the host and port instead of using the "Gmail" shortcut
     host: "smtp.gmail.com",
-    port: 587,
-    secure: true,
+    port: 587, // Changed from 465 to the STARTTLS port
+    secure: false, // Must be false for port 587 (it upgrades automatically)
+    requireTLS: true, // Forces the secure upgrade
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    family: 4, // Force IPv4, avoids potential issues with IPv6 in some environments
-    // 2. Tell Nodemailer not to panic when passing through Render's proxy
     tls: {
-      rejectUnauthorized: false,
-    },
+      rejectUnauthorized: false
+    }
   });
 
   // 2. Define Email Options
