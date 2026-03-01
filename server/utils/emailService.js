@@ -3,10 +3,17 @@ const nodemailer = require("nodemailer");
 const sendEmail = async (options) => {
   // 1. Create Transporter
   const transporter = nodemailer.createTransport({
-    service: "Gmail", // Or use 'host'/'port' for other providers like SendGrid
+    // 1. Hardcode the host and port instead of using the "Gmail" shortcut
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.EMAIL_USER, // Set these in your .env
-      pass: process.env.EMAIL_PASS, 
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    // 2. Tell Nodemailer not to panic when passing through Render's proxy
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 
