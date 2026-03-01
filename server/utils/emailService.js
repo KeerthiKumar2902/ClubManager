@@ -11,6 +11,7 @@ const sendEmail = async (options) => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    family: 4, // Force IPv4, avoids potential issues with IPv6 in some environments
     // 2. Tell Nodemailer not to panic when passing through Render's proxy
     tls: {
       rejectUnauthorized: false,
