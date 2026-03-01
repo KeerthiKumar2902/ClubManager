@@ -14,8 +14,13 @@ const ForgotPassword = () => {
     setMessage('');
     setError('');
 
+    // Fetch the live Render URL from Vercel's environment variables
+    // It falls back to localhost if you are testing on your own computer
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
     try {
-      await axios.post('http://localhost:5000/api/auth/forgot-password', { email });
+      // Use the dynamic API_URL here!
+      await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
       setMessage('Password reset link has been sent to your email.');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send email.');
