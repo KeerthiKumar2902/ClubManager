@@ -34,6 +34,8 @@ app.get("/", (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
+// Start Server
+// Adding "0.0.0.0" forces it to open the port to Render's cloud network
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
