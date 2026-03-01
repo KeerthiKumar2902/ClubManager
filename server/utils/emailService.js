@@ -1,28 +1,33 @@
-const nodemailer = require("nodemailer");
-
 const sendEmail = async (options) => {
-  // 1. Create Transporter
-  const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  logger: true,
-  debug: true,
-});
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": process.env.BREVO_API_KEY,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        // The sender email must be the one you used to sign up for Brevo
+        sender: { email: process.env.EMAIL_USER, name: "Club Manager Support" },
+        to: [{ email: options.email }],
+        subject: options.subject,
+        htmlContent: options.html || `<p>${options.message}</p>`,
+        textContent: options.message,
+      }),
+    });
 
-  // 2. Define Email Options
-  const mailOptions = {
-    from: `"Club Manager Support" <${process.env.EMAIL_USER}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
-    html: options.html, // Optional: If you want to send HTML emails
-  };
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Brevo API Error:", errorData);
+      throw new Error("Failed to send email via Brevo");
+    }
 
-  // 3. Send Email
-  await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully via Brevo API!");
+  } catch (error) {
+    console.error("Email Service Crash:", error);
+    throw error; // Let the authController handle the 500 error
+  }
 };
 
 module.exports = sendEmail;
