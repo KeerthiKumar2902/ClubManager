@@ -22,6 +22,8 @@ app.use(
 ); // Allow Frontend to talk to Backend
 app.use(express.json()); // Parse incoming JSON data
 
+app.set("trust proxy", 1);// Trust reverse proxy (if using Heroku or similar) for secure cookies
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/clubs", clubRoutes);
